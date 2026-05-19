@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "chat_prefix": "! ",
+  "typing": {
+    "char_delay_ms": 40,
+    "open_chat_delay_ms": 250,
+    "after_overlay_ms": 150
+  },
+  "categories": [
+    {
+      "id": "9d07a8eebe27",
+      "name": "Правила / подсказки",
+      "order": 0
+    },
+    {
+      "id": "72b36034fdeb",
+      "name": "Помощь игрокам",
+      "order": 1
+    }
+  ],
+  "answers": [
+    {
+      "id": "b49b7e4177cb",
+      "category_id": "9d07a8eebe27",
+      "title": "Квесты / магазин",
+      "text": "ESC ---> Квесты ---> Магазин"
+    },
+    {
+      "id": "78a2ca42036e",
+      "category_id": "9d07a8eebe27",
+      "title": "Забрать предмет",
+      "text": "Предмет нужно забрать без шифта"
+    },
+    {
+      "id": "b23c0ca7e65c",
+      "category_id": "9d07a8eebe27",
+      "title": "Коммерция 5 мин",
+      "text": "Соблюдайте правила, коммерческие сообщения можно писать раз в 5 минут"
+    }
+  ],
+  "reminder": {
+    "enabled": false,
+    "interval_minutes": 15,
+    "text": "На связи, пишите в чат при вопросах."
+  }
+}
