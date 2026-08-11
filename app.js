@@ -65,15 +65,20 @@ function posterTag(url, alt, mode, name) {
 // ========================
 const STORAGE_KEY = 'myKinoArchive';
 const VIEW_KEY = 'kinoViewMode';
+const THEME_KEY = 'kinoTheme';
+const BACKFILL_KEY = 'kinoBackfillDone';
 
 let items = [];
 let typeFilter = 'all';
 let statusFilter = 'all';
+let decadeFilter = 'all';
 let sortMode = 'rating-desc';
 let viewMode = localStorage.getItem(VIEW_KEY) || 'grid';
+let theme = localStorage.getItem(THEME_KEY) || 'dark';
 let editId = null;
 let toastTimer = null;
 let searchTimer = null;
+let dragId = null;
 
 // ========================
 //  ХЕЛПЕРЫ
@@ -110,6 +115,9 @@ function normalize(item) {
     if (item.watchedEpisodes === undefined) item.watchedEpisodes = 0;
     if (item.totalEpisodes === undefined) item.totalEpisodes = 0;
     if (item.rewatches === undefined) item.rewatches = 0;
+    if (item.watchedAt === undefined) item.watchedAt = '';
+    if (item.year === undefined) item.year = null;
+    if (item.tmdbRating === undefined) item.tmdbRating = null;
     return item;
 }
 
@@ -153,6 +161,10 @@ function getFiltered() {
     if (statusFilter !== 'all') {
         filtered = filtered.filter(item => item.status === statusFilter);
     }
+    if (decadeFilter !== 'all') {
+        filtered = filtered.filter(item =>
+            item.year && Math.floor(item.year / 10) * 10 === parseInt(decadeFilter, 10));
+    }
     if (query) {
         filtered = filtered.filter(item => item.name.toLowerCase().includes(query));
     }
@@ -163,6 +175,15 @@ function getFiltered() {
             break;
         case 'rating-asc':
             filtered = filtered.slice().sort((a, b) => (a.rating || 0) - (b.rating || 0));
+            break;
+        case 'watched-desc':
+            filtered = filtered.slice().sort((a, b) => {
+                const wa = a.watchedAt || '', wb = b.watchedAt || '';
+                if (!wa && !wb) return 0;
+                if (!wa) return 1;
+                if (!wb) return -1;
+                return wb.localeCompare(wa);
+            });
             break;
         case 'name-asc':
             filtered = filtered.slice().sort((a, b) => a.name.localeCompare(b.name, 'ru'));
@@ -175,6 +196,8 @@ function getFiltered() {
             break;
         case 'id-asc':
             filtered = filtered.slice().sort((a, b) => a.id - b.id);
+            break;
+        case 'manual':
             break;
     }
     return filtered;
@@ -241,7 +264,12 @@ function render() {
     const cardsEl = $('#cards');
     const emptyEl = $('#emptyState');
 
+    const dnd = sortMode === 'manual';
     cardsEl.className = viewMode === 'grid' ? 'cards' : 'cards list';
+    if (dnd) cardsEl.classList.add('dnd');
+
+    $('#decadeFilters').style.display = items.some(i => i.year) ? 'flex' : 'none';
+    renderRecent();
 
     if (!filtered.length) {
         cardsEl.innerHTML = '';
@@ -254,16 +282,23 @@ function render() {
         cardsEl.innerHTML = filtered.map(item => {
             const typeBadge = TYPE_BADGES[item.type] || '';
             const statusBadge = STATUS_BADGES[item.status] || '';
+            const yearBadge = item.year ? `<span class="badge year">${item.year}</span>` : '';
+            const tmdbText = item.tmdbRating ? `<span class="gtmdb">TMDB ⭐ ${item.tmdbRating}</span>` : '';
             const rewatch = item.rewatches > 0
                 ? `<span class="grewatch"><i class="fas fa-rotate-right"></i> ×${item.rewatches}</span>` : '';
+            const quickBtn = item.status === 'В процессе'
+                ? `<button class="act-finish" title="Посмотрел!"><i class="fas fa-check"></i></button>`
+                : item.status === 'Буду смотреть'
+                    ? `<button class="act-start" title="Начать смотреть"><i class="fas fa-play"></i></button>` : '';
             const rewatchBtn = item.status === 'Просмотрено'
                 ? `<button class="act-rewatch" title="+1 пересмотр"><i class="fas fa-rotate-right"></i></button>` : '';
             return `
-                <div class="gcard" data-id="${item.id}" data-action="open">
+                <div class="gcard" data-id="${item.id}" data-action="open" ${dnd ? 'draggable="true"' : ''}>
                     <div class="poster-wrap">
                         ${posterHtml(item, 'grid')}
                         ${ratingRingHtml(item.rating)}
                         <div class="gcard-actions" data-actions>
+                            ${quickBtn}
                             ${rewatchBtn}
                             <button class="act-edit" title="Редактировать"><i class="fas fa-pen"></i></button>
                             <button class="act-delete" title="Удалить"><i class="fas fa-trash"></i></button>
@@ -274,9 +309,10 @@ function render() {
                         <div class="gmeta">
                             <span class="badge ${typeBadge}">${TYPE_ICONS[item.type] || ''} ${esc(item.type || '?')}</span>
                             <span class="badge ${statusBadge}">${STATUS_ICONS[item.status] || ''} ${esc(item.status || '?')}</span>
+                            ${yearBadge}
                         </div>
                         ${progressHtml(item)}
-                        ${rewatch}
+                        ${rewatch}${tmdbText}
                     </div>
                 </div>`;
         }).join('');
@@ -284,24 +320,33 @@ function render() {
         cardsEl.innerHTML = filtered.map(item => {
             const typeBadge = TYPE_BADGES[item.type] || '';
             const statusBadge = STATUS_BADGES[item.status] || '';
+            const yearBadge = item.year ? `<span class="badge year">${item.year}</span>` : '';
+            const tmdbText = item.tmdbRating ? `<span>TMDB ⭐ ${item.tmdbRating}</span>` : '';
             const rewatch = item.rewatches > 0 ? `<span>🔄 ×${item.rewatches}</span>` : '';
+            const quickBtn = item.status === 'В процессе'
+                ? `<button class="act-finish" title="Посмотрел!"><i class="fas fa-check"></i></button>`
+                : item.status === 'Буду смотреть'
+                    ? `<button class="act-start" title="Начать смотреть"><i class="fas fa-play"></i></button>` : '';
             const rewatchBtn = item.status === 'Просмотрено'
                 ? `<button class="act-rewatch" title="+1 пересмотр"><i class="fas fa-rotate-right"></i></button>` : '';
             return `
-                <div class="list-item" data-id="${item.id}" data-action="open">
+                <div class="list-item" data-id="${item.id}" data-action="open" ${dnd ? 'draggable="true"' : ''}>
                     ${posterHtml(item, 'list')}
                     <div class="l-info">
                         <div class="l-title">${esc(item.name)}</div>
                         <div class="l-meta">
                             <span class="badge ${typeBadge}">${esc(item.type || '?')}</span>
                             <span class="badge ${statusBadge}">${esc(item.status || '?')}</span>
+                            ${yearBadge}
                             ${item.status === 'В процессе' && (item.type === 'Сериал' || item.type === 'Аниме')
                                 ? `<span>${item.watchedEpisodes || 0}/${item.totalEpisodes || '?'} серий</span>` : ''}
                             ${rewatch}
+                            ${tmdbText}
                         </div>
                     </div>
                     ${ratingBadgeHtml(item.rating)}
                     <div class="l-actions">
+                        ${quickBtn}
                         ${rewatchBtn}
                         <button class="act-edit" title="Редактировать"><i class="fas fa-pen"></i></button>
                         <button class="act-delete" title="Удалить"><i class="fas fa-trash"></i></button>
@@ -310,6 +355,30 @@ function render() {
         }).join('');
     }
 }
+
+// ========================
+//  НЕДАВНИЕ ДОБАВЛЕННЫЕ
+// ========================
+function renderRecent() {
+    const section = $('#recentSection');
+    const recent = items.slice().sort((a, b) => b.id - a.id).slice(0, 8);
+    if (!recent.length) {
+        section.style.display = 'none';
+        return;
+    }
+    section.style.display = 'block';
+    $('#recentRow').innerHTML = recent.map(item => `
+        <div class="recent-item" data-id="${item.id}" data-recent>
+            ${item.poster ? posterTag(item.poster, item.name, 'similar') : '<div class="s-fallback"><i class="fas fa-film"></i></div>'}
+            <div class="name">${esc(item.name)}</div>
+        </div>`).join('');
+}
+
+$('#recentRow').addEventListener('click', function(e) {
+    const el = e.target.closest('[data-id]');
+    if (!el) return;
+    openDetail(el.dataset.id);
+});
 
 // ========================
 //  ДЕЛЕГИРОВАНИЕ КЛИКОВ ПО КАРТОЧКАМ
@@ -330,6 +399,12 @@ $('#cards').addEventListener('click', function(e) {
         } else if (btn.classList.contains('act-rewatch')) {
             e.stopPropagation();
             bumpRewatch(id);
+        } else if (btn.classList.contains('act-finish')) {
+            e.stopPropagation();
+            markWatched(id);
+        } else if (btn.classList.contains('act-start')) {
+            e.stopPropagation();
+            startWatching(id);
         }
         return;
     }
@@ -343,7 +418,7 @@ function findItem(id) {
     return items.find(i => i.id == id);
 }
 
-function addItem(name, type, status, rating, rewatches, poster, watchedEpisodes, totalEpisodes) {
+function addItem(name, type, status, rating, rewatches, poster, watchedEpisodes, totalEpisodes, watchedAt) {
     const exists = items.some(item =>
         item.name.toLowerCase() === name.toLowerCase() && item.type === type);
     if (exists) {
@@ -361,10 +436,27 @@ function addItem(name, type, status, rating, rewatches, poster, watchedEpisodes,
         poster: poster || '',
         watchedEpisodes: parseInt(watchedEpisodes) || 0,
         totalEpisodes: parseInt(totalEpisodes) || 0,
+        watchedAt: watchedAt || (status === 'Просмотрено' ? todayISO() : ''),
+        year: null,
+        tmdbRating: null,
     });
     saveData();
     showToast('✅ Добавлено!');
     return true;
+}
+
+function todayISO() {
+    const d = new Date();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${d.getFullYear()}-${m}-${day}`;
+}
+
+function formatDate(iso) {
+    if (!iso) return '';
+    const d = new Date(iso + 'T00:00:00');
+    if (isNaN(d)) return iso;
+    return d.toLocaleDateString('ru-RU');
 }
 
 function plural(n, one, few, many) {
@@ -378,9 +470,28 @@ function plural(n, one, few, many) {
 function bumpRewatch(id) {
     const item = findItem(id);
     if (!item) return;
-    item.rewatches = (item.rewatches || 0) + 1;
+    showConfirm(`«${item.name}» — добавить пересмотр?`, () => {
+        item.rewatches = (item.rewatches || 0) + 1;
+        saveData();
+        showToast(`🔄 «${item.name}» — ${item.rewatches} ${plural(item.rewatches, 'пересмотр', 'пересмотра', 'пересмотров')}`);
+    });
+}
+
+function markWatched(id) {
+    const item = findItem(id);
+    if (!item) return;
+    item.status = 'Просмотрено';
+    if (!item.watchedAt) item.watchedAt = todayISO();
     saveData();
-    showToast(`🔄 «${item.name}» — ${item.rewatches} ${plural(item.rewatches, 'пересмотр', 'пересмотра', 'пересмотров')}`);
+    showToast(`✅ «${item.name}» — просмотрено!`);
+}
+
+function startWatching(id) {
+    const item = findItem(id);
+    if (!item) return;
+    item.status = 'В процессе';
+    saveData();
+    showToast(`⏳ Начал смотреть «${item.name}»`);
 }
 
 function confirmDelete(id) {
@@ -407,6 +518,7 @@ function openAddModal() {
     $('#editPoster').value = '';
     $('#editWatchedEpisodes').value = '';
     $('#editTotalEpisodes').value = '';
+    $('#editWatchedAt').value = '';
     $('#editModal').classList.add('show');
     toggleEditFields();
     setTimeout(() => $('#editName').focus(), 80);
@@ -425,6 +537,7 @@ function openEdit(id) {
     $('#editPoster').value = item.poster || '';
     $('#editWatchedEpisodes').value = item.watchedEpisodes || '';
     $('#editTotalEpisodes').value = item.totalEpisodes || '';
+    $('#editWatchedAt').value = item.watchedAt || '';
     $('#editModal').classList.add('show');
     toggleEditFields();
 }
@@ -437,14 +550,21 @@ function closeModal() {
 function toggleEditFields() {
     const status = $('#editStatus').value;
     const wrap = $('#editProgressWrap');
+    const dateWrap = $('#editDateWrap');
     const ratingInput = $('#editRating');
 
     if (status === 'В процессе') {
         wrap.style.display = 'block';
+        dateWrap.style.display = 'none';
         ratingInput.disabled = true;
         ratingInput.value = '';
+    } else if (status === 'Просмотрено') {
+        wrap.style.display = 'none';
+        dateWrap.style.display = 'block';
+        ratingInput.disabled = false;
     } else {
         wrap.style.display = 'none';
+        dateWrap.style.display = 'none';
         ratingInput.disabled = false;
     }
 }
@@ -475,11 +595,18 @@ function saveModal() {
         item.poster = poster;
         item.watchedEpisodes = watchedEpisodes;
         item.totalEpisodes = totalEpisodes;
+        if (status === 'Просмотрено') {
+            item.watchedAt = $('#editWatchedAt').value || item.watchedAt || todayISO();
+        } else if (!item.watchedAt) {
+            item.watchedAt = '';
+        }
         saveData();
         closeModal();
         showToast('💾 Сохранено!');
     } else {
-        if (addItem(name, type, status, rating, rewatches, poster, watchedEpisodes, totalEpisodes)) {
+        const watchedAt = status === 'Просмотрено'
+            ? ($('#editWatchedAt').value || todayISO()) : '';
+        if (addItem(name, type, status, rating, rewatches, poster, watchedEpisodes, totalEpisodes, watchedAt)) {
             closeModal();
         }
     }
@@ -594,8 +721,11 @@ function openDetail(id) {
     $('#detailType').className = 'badge ' + (TYPE_BADGES[item.type] || 'film');
     $('#detailStatus').className = 'badge ' + (STATUS_BADGES[item.status] || 'status-watched');
     $('#detailRating').textContent = item.rating > 0 ? `${item.rating} / 10` : '—';
+    $('#detailTmdbr').textContent = item.tmdbRating || '—';
     $('#detailRewatches').textContent = item.rewatches || 0;
     $('#detailType').textContent = item.type;
+    $('#detailWatched').textContent = item.watchedAt
+        ? `📅 Просмотрено: ${formatDate(item.watchedAt)}` : '';
     $('#detailModal').classList.add('show');
 
     fetchTMDBDetail(item.name).then(detail => {
@@ -608,6 +738,14 @@ function openDetail(id) {
             $('#detailYear').textContent = detail.year;
             $('#detailYear2').textContent = detail.year;
         }
+        if (detail.rating) {
+            $('#detailTmdbr').textContent = detail.rating;
+        }
+
+        let changed = false;
+        if (item.year === null && detail.year) { item.year = detail.year; changed = true; }
+        if (item.tmdbRating === null && detail.rating) { item.tmdbRating = detail.rating; changed = true; }
+        if (changed) saveData();
 
         if (detail.genres && detail.genres.length) {
             $('#detailGenres').innerHTML = detail.genres
@@ -649,6 +787,7 @@ async function fetchTMDBDetail(name) {
     const detail = {
         overview: first.overview || '',
         year,
+        rating: first.vote_average ? Math.round(first.vote_average * 10) / 10 : null,
         genres: first.genre_ids || [],
         similar: []
     };
@@ -720,16 +859,6 @@ function closeDetail() {
 // ========================
 //  ЭКСПОРТ / ИМПОРТ
 // ========================
-function exportData() {
-    const blob = new Blob([JSON.stringify(items, null, 2)], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'my_archive_backup.json';
-    a.click();
-    URL.revokeObjectURL(a.href);
-    showToast('📦 Бэкап скачан!');
-}
-
 function importData(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -807,6 +936,15 @@ $('#statusFilters').addEventListener('click', function(e) {
     render();
 });
 
+$('#decadeFilters').addEventListener('click', function(e) {
+    const btn = e.target.closest('.chip');
+    if (!btn) return;
+    $$('#decadeFilters .chip').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    decadeFilter = btn.dataset.decade;
+    render();
+});
+
 $('#sortSelect').addEventListener('change', function() {
     sortMode = this.value;
     render();
@@ -874,9 +1012,207 @@ $('#cancelModalBtn').addEventListener('click', closeModal);
 $('#saveModalBtn').addEventListener('click', saveModal);
 
 // ========================
+//  ТЕМА
+// ========================
+function applyTheme() {
+    document.documentElement.dataset.theme = theme;
+    $('#themeBtn').innerHTML = theme === 'dark'
+        ? '<i class="fas fa-sun"></i>'
+        : '<i class="fas fa-moon"></i>';
+}
+
+$('#themeBtn').addEventListener('click', function() {
+    theme = theme === 'dark' ? 'light' : 'dark';
+    try {
+        localStorage.setItem(THEME_KEY, theme);
+    } catch (e) { /* ignore */ }
+    applyTheme();
+});
+
+// ========================
+//  СЛУЧАЙНЫЙ ФИЛЬМ
+// ========================
+$('#randomBtn').addEventListener('click', function() {
+    const pool = getFiltered();
+    if (!pool.length) {
+        showToast('Нет фильмов для выбора', true);
+        return;
+    }
+    const pick = pool[Math.floor(Math.random() * pool.length)];
+    openDetail(pick.id);
+});
+
+// ========================
+//  ЭКСПОРТ (JSON / Markdown / CSV)
+// ========================
+function downloadFile(filename, content, mime) {
+    const blob = new Blob([content], { type: mime });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(a.href);
+}
+
+function exportJSON() {
+    downloadFile('my_archive_backup.json', JSON.stringify(items, null, 2), 'application/json');
+    showToast('📦 Бэкап JSON скачан!');
+}
+
+function exportMarkdown() {
+    let md = '# 🎬 Мой киноархив\n\n';
+    for (const t of ['Фильм', 'Сериал', 'Аниме']) {
+        const list = items.filter(i => i.type === t)
+            .sort((a, b) => (b.rating || 0) - (a.rating || 0));
+        if (!list.length) continue;
+        md += `## ${t}\n\n`;
+        list.forEach(i => {
+            const parts = [];
+            parts.push(`**${i.name}**`);
+            if (i.rating) parts.push(`моя оценка ${i.rating}/10`);
+            if (i.tmdbRating) parts.push(`TMDB ${i.tmdbRating}`);
+            if (i.year) parts.push(String(i.year));
+            if (i.rewatches) parts.push(`пересмотрено ×${i.rewatches}`);
+            if (i.watchedAt) parts.push(`просмотрено ${formatDate(i.watchedAt)}`);
+            md += `- ${parts.join(' · ')}\n`;
+        });
+        md += '\n';
+    }
+    downloadFile('my_archive.md', md, 'text/markdown');
+    showToast('📄 Markdown скачан!');
+}
+
+function exportCSV() {
+    const rows = [
+        ['Название', 'Тип', 'Статус', 'Моя оценка', 'TMDB', 'Пересмотры', 'Год', 'Дата просмотра', 'Постер']
+    ];
+    items.forEach(i => {
+        rows.push([
+            i.name, i.type, i.status, i.rating || '', i.tmdbRating || '',
+            i.rewatches || 0, i.year || '', i.watchedAt || '', i.poster || ''
+        ]);
+    });
+    const csv = rows.map(r => r.map(v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`).join(';')).join('\r\n');
+    downloadFile('my_archive.csv', '\ufeff' + csv, 'text/csv;charset=utf-8');
+    showToast('📊 CSV скачан!');
+}
+
+$('#exportBtn').addEventListener('click', function(e) {
+    e.stopPropagation();
+    $('#exportMenu').classList.toggle('show');
+});
+
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.export-wrap')) {
+        $('#exportMenu').classList.remove('show');
+    }
+});
+
+$('#exportMenu').addEventListener('click', function(e) {
+    const btn = e.target.closest('[data-format]');
+    if (!btn) return;
+    const format = btn.dataset.format;
+    if (format === 'json') exportJSON();
+    else if (format === 'markdown') exportMarkdown();
+    else if (format === 'csv') exportCSV();
+    $('#exportMenu').classList.remove('show');
+});
+
+// ========================
+//  DRAG & DROP (свой порядок)
+// ========================
+$('#cards').addEventListener('dragstart', function(e) {
+    const card = e.target.closest('[data-id]');
+    if (!card || sortMode !== 'manual') return;
+    dragId = card.dataset.id;
+    card.classList.add('dragging');
+});
+
+$('#cards').addEventListener('dragover', function(e) {
+    if (!dragId) return;
+    e.preventDefault();
+    const card = e.target.closest('[data-id]');
+    if (card && card.dataset.id !== dragId) {
+        $$('#cards [data-id].drag-over').forEach(c => c.classList.remove('drag-over'));
+        card.classList.add('drag-over');
+    }
+});
+
+$('#cards').addEventListener('dragleave', function(e) {
+    const card = e.target.closest('[data-id]');
+    if (card) card.classList.remove('drag-over');
+});
+
+$('#cards').addEventListener('drop', function(e) {
+    if (!dragId) return;
+    e.preventDefault();
+    const target = e.target.closest('[data-id]');
+    if (target && target.dataset.id !== dragId) {
+        const fromIdx = items.findIndex(i => i.id == dragId);
+        const toIdx = items.findIndex(i => i.id == target.dataset.id);
+        if (fromIdx !== -1 && toIdx !== -1) {
+            const [moved] = items.splice(fromIdx, 1);
+            items.splice(toIdx, 0, moved);
+            saveData();
+            showToast('✋ Порядок сохранён!');
+        }
+    }
+});
+
+$('#cards').addEventListener('dragend', function() {
+    dragId = null;
+    $$('#cards .dragging, #cards .drag-over').forEach(c =>
+        c.classList.remove('dragging', 'drag-over'));
+});
+
+// ========================
+//  ФОНОВАЯ ДОЗАГРУЗКА TMDB (год + рейтинг)
+// ========================
+function backfillTMDB() {
+    let done = false;
+    try {
+        done = localStorage.getItem(BACKFILL_KEY) === '1';
+    } catch (e) { /* ignore */ }
+    if (done) return;
+
+    const missing = items.filter(i => !i.year && !i.tmdbRating).slice(0, 15);
+    if (!missing.length) {
+        try { localStorage.setItem(BACKFILL_KEY, '1'); } catch (e) { /* ignore */ }
+        return;
+    }
+
+    let k = 0;
+    const tick = async () => {
+        if (k >= missing.length) {
+            try { localStorage.setItem(BACKFILL_KEY, '1'); } catch (e) { /* ignore */ }
+            saveData();
+            return;
+        }
+        const item = missing[k++];
+        try {
+            const resp = await tmdbFetch(`/search/multi?query=${encodeURIComponent(item.name)}&language=ru-RU`);
+            if (resp.ok) {
+                const data = await resp.json();
+                const first = data.results && data.results[0];
+                if (first) {
+                    if (item.year === null) {
+                        const y = parseInt((first.release_date || first.first_air_date || '').slice(0, 4), 10);
+                        if (!isNaN(y)) item.year = y;
+                    }
+                    if (item.tmdbRating === null && first.vote_average) {
+                        item.tmdbRating = Math.round(first.vote_average * 10) / 10;
+                    }
+                }
+            }
+        } catch (e) { /* ignore */ }
+        setTimeout(tick, 350);
+    };
+    tick();
+}
+
+// ========================
 //  КНОПКИ ШАПКИ И FAB
 // ========================
-$('#exportBtn').addEventListener('click', exportData);
 $('#importBtn').addEventListener('click', () => $('#importInput').click());
 $('#importInput').addEventListener('change', importData);
 $('#fabAdd').addEventListener('click', openAddModal);
@@ -884,6 +1220,8 @@ $('#fabAdd').addEventListener('click', openAddModal);
 // ========================
 //  ЗАПУСК
 // ========================
+applyTheme();
 setView(viewMode);
 loadData();
+backfillTMDB();
 console.log('🎬 Киноархив загружен! Всего записей:', items.length);

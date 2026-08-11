@@ -21,8 +21,17 @@
                 <span class="logo-text">Киноархив</span>
             </div>
             <div class="header-actions">
+                <button class="icon-btn" id="randomBtn" title="Случайный фильм"><i class="fas fa-dice"></i></button>
+                <button class="icon-btn" id="themeBtn" title="Тема"><i class="fas fa-moon"></i></button>
+                <div class="export-wrap">
+                    <button class="icon-btn" id="exportBtn" title="Экспорт"><i class="fas fa-download"></i></button>
+                    <div class="export-menu" id="exportMenu">
+                        <button data-format="json"><i class="fas fa-file-code"></i> JSON (бэкап)</button>
+                        <button data-format="markdown"><i class="fas fa-file-lines"></i> Markdown</button>
+                        <button data-format="csv"><i class="fas fa-table"></i> CSV (Excel)</button>
+                    </div>
+                </div>
                 <button class="icon-btn" id="importBtn" title="Импорт"><i class="fas fa-upload"></i></button>
-                <button class="icon-btn" id="exportBtn" title="Экспорт (бэкап)"><i class="fas fa-download"></i></button>
                 <input type="file" id="importInput" accept=".json" style="display:none" />
             </div>
         </div>
@@ -69,14 +78,24 @@
                 <button class="chip status-plan" data-status="Буду смотреть">📌 Буду смотреть</button>
             </div>
 
+            <div class="filters-row" id="decadeFilters" style="display:none;">
+                <button class="chip active" data-decade="all">Все годы</button>
+                <button class="chip" data-decade="1990">90-е</button>
+                <button class="chip" data-decade="2000">00-е</button>
+                <button class="chip" data-decade="2010">10-е</button>
+                <button class="chip" data-decade="2020">20-е</button>
+            </div>
+
             <div class="toolbar">
                 <select class="sort-select" id="sortSelect">
                     <option value="rating-desc">⭐ По рейтингу ↓</option>
                     <option value="rating-asc">⭐ По рейтингу ↑</option>
+                    <option value="watched-desc">📅 По дате просмотра</option>
                     <option value="name-asc">🔤 По названию А–Я</option>
                     <option value="name-desc">🔤 По названию Я–А</option>
                     <option value="id-desc">🆕 Сначала новые</option>
                     <option value="id-asc">📅 Сначала старые</option>
+                    <option value="manual">✋ Свой порядок (drag & drop)</option>
                 </select>
                 <div class="view-toggle">
                     <button id="viewGrid" class="active" title="Сетка"><i class="fas fa-th-large"></i></button>
@@ -95,6 +114,12 @@
         </div>
 
         <div class="search-results" id="searchResults"></div>
+
+        <!-- НЕДАВНИЕ -->
+        <div class="recent-section" id="recentSection" style="display:none;">
+            <div class="recent-title"><i class="fas fa-clock-rotate-left"></i> Недавно добавленные</div>
+            <div class="recent-row" id="recentRow"></div>
+        </div>
 
         <!-- КАРТОЧКИ -->
         <div class="cards" id="cards"></div>
@@ -159,6 +184,10 @@
                     </div>
                 </div>
             </div>
+            <div id="editDateWrap" style="display:none;">
+                <label>Дата просмотра</label>
+                <input type="date" id="editWatchedAt" />
+            </div>
             <label>Постер (URL)</label>
             <input type="text" id="editPoster" placeholder="https://image.tmdb.org/..." />
             <div class="modal-actions">
@@ -183,13 +212,18 @@
                         <span class="badge status-watched" id="detailStatus">—</span>
                         <span id="detailYear">—</span>
                     </div>
+                    <div class="detail-watched" id="detailWatched"></div>
                 </div>
             </div>
             <div class="detail-body">
                 <div class="detail-info-line">
                     <div class="dil-item">
                         <div class="dil-val" id="detailRating">—</div>
-                        <div class="dil-lbl">Оценка</div>
+                        <div class="dil-lbl">Моя оценка</div>
+                    </div>
+                    <div class="dil-item">
+                        <div class="dil-val" id="detailTmdbr">—</div>
+                        <div class="dil-lbl">TMDB</div>
                     </div>
                     <div class="dil-item">
                         <div class="dil-val" id="detailRewatches">0</div>

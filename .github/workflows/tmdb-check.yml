@@ -1,0 +1,43 @@
+name: TMDB Key Check
+
+on:
+  schedule:
+    - cron: '0 7 * * *'
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Проверить TMDB API-ключ
+        id: tmdb
+        env:
+          TMDB_KEY: 40f8044a3992bf1a264badac3ca33f28
+        run: |
+          HTTP=$(curl -s -o /tmp/tmdb.json -w "%{http_code}" \
+            -H "Authorization: Bearer $TMDB_KEY" \
+            "https://api.themoviedb.org/3/authentication")
+          echo "http=$HTTP"
+          echo "status=$HTTP" >> "$GITHUB_OUTPUT"
+
+      - name: Создать issue, если ключ мёртв
+        if: steps.tmdb.outputs.status != '200'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          DATE=$(date -u +%Y-%m-%d)
+          if ! gh issue list --label "tmdb-key" --state open --limit 5 | grep -q "tmdb-key"; then
+            gh issue create \
+              --title "TMDB API-ключ не работает ($DATE)" \
+              --label "tmdb-key" \
+              --body "Автопроверка $(date -u): запрос к api.themoviedb.org вернул HTTP ${{ steps.tmdb.outputs.status }}.
+
+Ключ в файле app.js (TMDB_API_KEY) больше не принимается TMDB. Нужно:
+1. Зайти на https://www.themoviedb.org/settings/api
+2. Скопировать новый API-ключ (или Read Access Token)
+3. Заменить его в app.js (и в этом workflow, если ключ там указан)
+4. Запушить изменения"
+          fi
