@@ -2,1465 +2,233 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Мой киноархив</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet" />
+    <meta name="description" content="Личный архив фильмов, сериалов и аниме" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: #000000;
-            color: #ffffff;
-            padding: 20px 16px 100px;
-            min-height: 100vh;
-        }
-        .container {
-            max-width: 700px;
-            margin: 0 auto;
-        }
-
-        /* HEADER */
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
-            flex-wrap: wrap;
-            gap: 12px;
-        }
-        .header h1 {
-            font-size: 28px;
-            font-weight: 700;
-            letter-spacing: -0.5px;
-            color: #ffffff;
-            text-shadow: 0 0 20px rgba(255, 255, 255, 0.10);
-        }
-        .header-actions {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-        .header-actions button {
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            color: #aaaaaa;
-            padding: 8px 12px;
-            border-radius: 10px;
-            font-size: 13px;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-family: inherit;
-        }
-        .header-actions button:hover {
-            background: rgba(255, 255, 255, 0.10);
-            color: #ffffff;
-        }
-
-        /* STATS */
-        .stats {
-            display: flex;
-            gap: 16px;
-            flex-wrap: wrap;
-            margin-bottom: 20px;
-            font-size: 14px;
-            color: #888888;
-        }
-        .stats span {
-            background: rgba(255, 255, 255, 0.03);
-            padding: 4px 14px;
-            border-radius: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.04);
-        }
-        .stats strong {
-            color: #ffffff;
-        }
-
-        /* FILTERS + STATUS FILTERS */
-        .filters-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-bottom: 12px;
-        }
-        .filters-row button {
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            color: #888888;
-            padding: 6px 16px;
-            border-radius: 20px;
-            font-size: 13px;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-family: inherit;
-        }
-        .filters-row button.active {
-            background: rgba(255, 255, 255, 0.08);
-            border-color: rgba(255, 255, 255, 0.2);
-            color: #ffffff;
-        }
-        .filters-row button:hover {
-            background: rgba(255, 255, 255, 0.05);
-        }
-        .filters-row .status-btn.watching.active {
-            border-color: #f1c40f;
-            color: #f1c40f;
-        }
-        .filters-row .status-btn.plan.active {
-            border-color: #5dade2;
-            color: #5dade2;
-        }
-
-        /* SEARCH */
-        .search-add {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-        .search-add input {
-            flex: 1;
-            min-width: 160px;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 12px;
-            padding: 12px 16px;
-            color: #ffffff;
-            font-size: 15px;
-            font-family: inherit;
-            outline: none;
-            transition: border 0.2s;
-        }
-        .search-add input:focus {
-            border-color: rgba(255, 255, 255, 0.25);
-        }
-        .search-add input::placeholder {
-            color: #444444;
-        }
-        .search-add button {
-            background: rgba(255, 255, 255, 0.06);
-            border: 1px solid rgba(255, 255, 255, 0.10);
-            color: #ffffff;
-            padding: 12px 20px;
-            border-radius: 12px;
-            font-size: 15px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-family: inherit;
-            white-space: nowrap;
-        }
-        .search-add button:active {
-            transform: scale(0.96);
-        }
-
-        /* SEARCH RESULTS */
-        .search-results {
-            margin-bottom: 20px;
-            display: none;
-            flex-direction: column;
-            gap: 8px;
-        }
-        .search-results.show {
-            display: flex;
-        }
-        .search-result-item {
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 12px;
-            padding: 12px 16px;
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .search-result-item:active {
-            transform: scale(0.98);
-        }
-        .search-result-item img {
-            width: 44px;
-            height: 66px;
-            object-fit: cover;
-            border-radius: 6px;
-            background: #111111;
-        }
-        .search-result-item .info {
-            flex: 1;
-        }
-        .search-result-item .info .title {
-            font-weight: 600;
-            font-size: 15px;
-        }
-        .search-result-item .info .meta {
-            font-size: 13px;
-            color: #666666;
-            margin-top: 2px;
-        }
-        .search-result-item .add-btn {
-            background: rgba(255, 255, 255, 0.06);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            color: #ffffff;
-            padding: 6px 14px;
-            border-radius: 8px;
-            font-size: 13px;
-            cursor: pointer;
-            font-family: inherit;
-        }
-
-        /* CARDS */
-        .cards {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        .card {
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 14px;
-            padding: 14px 16px;
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            transition: all 0.2s;
-            animation: fadeIn 0.25s ease;
-            cursor: pointer;
-        }
-        .card:active {
-            transform: scale(0.98);
-        }
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(8px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        .card img {
-            width: 48px;
-            height: 72px;
-            object-fit: cover;
-            border-radius: 8px;
-            background: #111111;
-            flex-shrink: 0;
-        }
-        .card .info {
-            flex: 1;
-            min-width: 0;
-        }
-        .card .info .title {
-            font-weight: 600;
-            font-size: 15px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            color: #ffffff;
-        }
-        .card .info .meta {
-            font-size: 13px;
-            color: #666666;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            align-items: center;
-            margin-top: 2px;
-        }
-        .card .info .meta .badge {
-            padding: 0 10px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 600;
-            background: rgba(255, 255, 255, 0.04);
-            color: #888888;
-        }
-        .card .info .meta .badge.film {
-            background: rgba(52, 152, 219, 0.15);
-            color: #5dade2;
-        }
-        .card .info .meta .badge.serial {
-            background: rgba(46, 204, 113, 0.15);
-            color: #58d68d;
-        }
-        .card .info .meta .badge.anime {
-            background: rgba(155, 89, 182, 0.15);
-            color: #af7ac5;
-        }
-        .card .info .meta .badge.status {
-            background: rgba(255, 255, 255, 0.04);
-            color: #666666;
-        }
-        .card .info .meta .badge.status.watching {
-            color: #f1c40f;
-        }
-        .card .info .meta .badge.status.plan {
-            color: #5dade2;
-        }
-        .card .info .meta .progress-text {
-            color: #888888;
-            font-size: 12px;
-        }
-        .card .rating-circle {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 14px;
-            flex-shrink: 0;
-            background: rgba(255, 255, 255, 0.03);
-            border: 2px solid rgba(255, 255, 255, 0.06);
-            color: #ffffff;
-        }
-        .card .rating-circle.high {
-            border-color: #2ecc71;
-            color: #2ecc71;
-        }
-        .card .rating-circle.mid {
-            border-color: #f1c40f;
-            color: #f1c40f;
-        }
-        .card .rating-circle.low {
-            border-color: #e74c3c;
-            color: #e74c3c;
-        }
-        .card .rating-circle.zero {
-            border-color: #444444;
-            color: #444444;
-        }
-        .card .actions {
-            display: flex;
-            gap: 6px;
-            flex-shrink: 0;
-            pointer-events: auto;
-        }
-        .card .actions button {
-            background: rgba(255, 255, 255, 0.03);
-            border: none;
-            color: #555555;
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.2s;
-        }
-        .card .actions button:active {
-            transform: scale(0.9);
-        }
-        .card .actions button.delete:active {
-            background: rgba(231, 76, 60, 0.15);
-            color: #e74c3c;
-        }
-        .card .actions button.edit:active {
-            background: rgba(255, 255, 255, 0.08);
-            color: #ffffff;
-        }
-
-        /* EMPTY */
-        .empty {
-            text-align: center;
-            padding: 60px 20px;
-            color: #444444;
-        }
-        .empty i {
-            font-size: 48px;
-            margin-bottom: 16px;
-            opacity: 0.2;
-        }
-
-        /* MODAL */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.85);
-            backdrop-filter: blur(12px);
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            z-index: 999;
-        }
-        .modal-overlay.show {
-            display: flex;
-        }
-        .modal {
-            background: #0a0a0a;
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 20px;
-            padding: 28px 24px;
-            max-width: 420px;
-            width: 100%;
-            animation: fadeIn 0.2s ease;
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-        .modal h3 {
-            font-size: 20px;
-            margin-bottom: 16px;
-            color: #ffffff;
-        }
-        .modal label {
-            font-size: 13px;
-            color: #666666;
-            display: block;
-            margin-top: 12px;
-            margin-bottom: 4px;
-        }
-        .modal input,
-        .modal select {
-            width: 100%;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 10px;
-            padding: 10px 14px;
-            color: #ffffff;
-            font-size: 15px;
-            font-family: inherit;
-            outline: none;
-        }
-        .modal input:focus,
-        .modal select:focus {
-            border-color: rgba(255, 255, 255, 0.15);
-        }
-        .modal input:disabled {
-            opacity: 0.3;
-            pointer-events: none;
-        }
-        .modal .modal-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-        .modal .modal-actions button {
-            flex: 1;
-            padding: 12px;
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            font-size: 15px;
-            font-weight: 600;
-            cursor: pointer;
-            font-family: inherit;
-            transition: all 0.2s;
-            background: transparent;
-            color: #ffffff;
-        }
-        .modal .modal-actions button:active {
-            transform: scale(0.96);
-        }
-        .modal .modal-actions .save-btn {
-            background: rgba(255, 255, 255, 0.06);
-            border-color: rgba(255, 255, 255, 0.10);
-        }
-        .modal .modal-actions .cancel-btn {
-            color: #666666;
-        }
-
-        /* DETAIL MODAL */
-        .detail-poster {
-            width: 100%;
-            max-height: 300px;
-            object-fit: cover;
-            border-radius: 12px;
-            margin-bottom: 16px;
-            background: #111111;
-        }
-        .detail-title {
-            font-size: 22px;
-            font-weight: 700;
-            margin-bottom: 4px;
-        }
-        .detail-meta {
-            color: #888888;
-            font-size: 14px;
-            margin-bottom: 12px;
-        }
-        .detail-overview {
-            color: #cccccc;
-            font-size: 14px;
-            line-height: 1.6;
-            margin-bottom: 16px;
-        }
-        .detail-similar {
-            display: flex;
-            gap: 12px;
-            overflow-x: auto;
-            padding: 8px 0 16px;
-            scrollbar-width: none;
-        }
-        .detail-similar::-webkit-scrollbar {
-            display: none;
-        }
-        .detail-similar-item {
-            flex: 0 0 80px;
-            text-align: center;
-            cursor: pointer;
-        }
-        .detail-similar-item img {
-            width: 80px;
-            height: 120px;
-            object-fit: cover;
-            border-radius: 8px;
-            background: #111111;
-        }
-        .detail-similar-item .name {
-            font-size: 11px;
-            color: #888888;
-            margin-top: 4px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        /* TOAST */
-        .toast {
-            position: fixed;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #111111;
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            color: #ffffff;
-            padding: 12px 24px;
-            border-radius: 14px;
-            font-weight: 600;
-            font-size: 14px;
-            opacity: 0;
-            transition: all 0.3s;
-            pointer-events: none;
-            z-index: 1000;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.8);
-            max-width: 90%;
-            text-align: center;
-        }
-        .toast.show {
-            opacity: 1;
-            transform: translateX(-50%) translateY(0);
-        }
-        .toast.error {
-            border-color: rgba(231, 76, 60, 0.3);
-            color: #e74c3c;
-        }
-
-        @media (max-width: 480px) {
-            .header h1 {
-                font-size: 22px;
-            }
-            .card {
-                padding: 12px 12px;
-                gap: 10px;
-            }
-            .card img {
-                width: 40px;
-                height: 60px;
-            }
-            .card .info .title {
-                font-size: 14px;
-            }
-            .search-add input {
-                font-size: 14px;
-                padding: 10px 14px;
-            }
-            .search-add button {
-                padding: 10px 16px;
-                font-size: 14px;
-            }
-            .detail-similar-item {
-                flex: 0 0 60px;
-            }
-            .detail-similar-item img {
-                width: 60px;
-                height: 90px;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-    <div class="container">
-        <div class="header">
-            <h1>🎬 Архив</h1>
+    <!-- HEADER -->
+    <header class="header">
+        <div class="header-inner">
+            <div class="logo">
+                <div class="logo-icon"><i class="fas fa-clapperboard"></i></div>
+                <span class="logo-text">Киноархив</span>
+            </div>
             <div class="header-actions">
-                <button onclick="exportData()"><i class="fas fa-download"></i></button>
-                <button onclick="document.getElementById('importInput').click()"><i class="fas fa-upload"></i></button>
-                <input type="file" id="importInput" accept=".json" style="display:none" onchange="importData(event)" />
+                <button class="icon-btn" id="importBtn" title="Импорт"><i class="fas fa-upload"></i></button>
+                <button class="icon-btn" id="exportBtn" title="Экспорт (бэкап)"><i class="fas fa-download"></i></button>
+                <input type="file" id="importInput" accept=".json" style="display:none" />
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+
+        <!-- СТАТИСТИКА -->
+        <div class="stats">
+            <div class="stat total">
+                <div class="num" id="totalCount">0</div>
+                <div class="lbl">Всего</div>
+            </div>
+            <div class="stat film">
+                <div class="num" id="filmCount">0</div>
+                <div class="lbl">Фильмы</div>
+            </div>
+            <div class="stat serial">
+                <div class="num" id="serialCount">0</div>
+                <div class="lbl">Сериалы</div>
+            </div>
+            <div class="stat anime">
+                <div class="num" id="animeCount">0</div>
+                <div class="lbl">Аниме</div>
+            </div>
+            <div class="stat avg">
+                <div class="num" id="avgRating">—</div>
+                <div class="lbl">Средняя</div>
             </div>
         </div>
 
-        <div class="stats" id="stats">
-            <span>📦 <strong id="totalCount">0</strong> всего</span>
-            <span>🎬 <strong id="filmCount">0</strong></span>
-            <span>📺 <strong id="serialCount">0</strong></span>
-            <span>🎌 <strong id="animeCount">0</strong></span>
+        <!-- УПРАВЛЕНИЕ -->
+        <div class="controls">
+            <div class="filters-row" id="typeFilters">
+                <button class="chip active" data-filter="all">Все</button>
+                <button class="chip" data-filter="Фильм">🎬 Фильмы</button>
+                <button class="chip" data-filter="Сериал">📺 Сериалы</button>
+                <button class="chip" data-filter="Аниме">🎌 Аниме</button>
+            </div>
+
+            <div class="filters-row" id="statusFilters">
+                <button class="chip active" data-status="all">Все статусы</button>
+                <button class="chip status-watching" data-status="В процессе">⏳ В процессе</button>
+                <button class="chip status-plan" data-status="Буду смотреть">📌 Буду смотреть</button>
+            </div>
+
+            <div class="toolbar">
+                <select class="sort-select" id="sortSelect">
+                    <option value="rating-desc">⭐ По рейтингу ↓</option>
+                    <option value="rating-asc">⭐ По рейтингу ↑</option>
+                    <option value="name-asc">🔤 По названию А–Я</option>
+                    <option value="name-desc">🔤 По названию Я–А</option>
+                    <option value="id-desc">🆕 Сначала новые</option>
+                    <option value="id-asc">📅 Сначала старые</option>
+                </select>
+                <div class="view-toggle">
+                    <button id="viewGrid" class="active" title="Сетка"><i class="fas fa-th-large"></i></button>
+                    <button id="viewList" title="Список"><i class="fas fa-list"></i></button>
+                </div>
+            </div>
         </div>
 
-        <!-- FILTERS ROW 1: Типы -->
-        <div class="filters-row" id="typeFilters">
-            <button class="active" data-filter="all">Все</button>
-            <button data-filter="Фильм">🎬 Фильмы</button>
-            <button data-filter="Сериал">📺 Сериалы</button>
-            <button data-filter="Аниме">🎌 Аниме</button>
-        </div>
-
-        <!-- FILTERS ROW 2: Статусы -->
-        <div class="filters-row" id="statusFilters">
-            <button class="active status-btn" data-status="all">Все статусы</button>
-            <button class="status-btn watching" data-status="В процессе">⏳ В процессе</button>
-            <button class="status-btn plan" data-status="Буду смотреть">📌 Буду смотреть</button>
-        </div>
-
+        <!-- ПОИСК -->
         <div class="search-add">
-            <input type="text" id="searchInput" placeholder="Поиск по названию..." />
-            <button onclick="searchTMDB()"><i class="fas fa-search"></i> Найти</button>
+            <div class="search-wrap">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" placeholder="Поиск по названию или добавь новое..." />
+            </div>
+            <button class="search-btn" id="searchBtn"><i class="fas fa-plus"></i> Найти</button>
         </div>
 
         <div class="search-results" id="searchResults"></div>
-        <div class="cards" id="cards"></div>
-        <div class="empty" id="emptyState">
-            <i class="fas fa-film"></i>
-            <p>Ничего не найдено</p>
-        </div>
-    </div>
 
-    <!-- EDIT MODAL -->
+        <!-- КАРТОЧКИ -->
+        <div class="cards" id="cards"></div>
+
+        <div class="empty" id="emptyState" style="display:none;">
+            <div class="empty-icon"><i class="fas fa-film"></i></div>
+            <p>Ничего не найдено</p>
+            <p class="empty-sub">Попробуй изменить фильтры или поисковый запрос</p>
+        </div>
+
+    </main>
+
+    <!-- FAB -->
+    <button class="fab" id="fabAdd" title="Добавить"><i class="fas fa-plus"></i></button>
+
+    <!-- МОДАЛКА ДОБАВЛЕНИЯ / РЕДАКТИРОВАНИЯ -->
     <div class="modal-overlay" id="editModal">
         <div class="modal">
-            <h3 id="modalTitle">✏️ Редактировать</h3>
+            <div class="modal-head">
+                <h3 id="modalTitle">✏️ Редактировать</h3>
+                <button class="modal-close" id="modalCloseBtn"><i class="fas fa-xmark"></i></button>
+            </div>
             <label>Название</label>
-            <input type="text" id="editName" />
-            <label>Тип</label>
-            <select id="editType">
-                <option value="Фильм">🎬 Фильм</option>
-                <option value="Сериал">📺 Сериал</option>
-                <option value="Аниме">🎌 Аниме</option>
-            </select>
-            <label>Статус</label>
-            <select id="editStatus" onchange="toggleEditFields()">
-                <option value="Просмотрено">✅ Просмотрено</option>
-                <option value="В процессе">⏳ В процессе</option>
-                <option value="Буду смотреть">📌 Буду смотреть</option>
-            </select>
-            <label>Оценка (1–10)</label>
-            <input type="number" id="editRating" min="0" max="10" />
-            <label>Пересмотров</label>
-            <input type="number" id="editRewatches" min="0" />
+            <input type="text" id="editName" placeholder="Например: Властелин колец" />
+            <div class="form-row">
+                <div>
+                    <label>Тип</label>
+                    <select id="editType">
+                        <option value="Фильм">🎬 Фильм</option>
+                        <option value="Сериал">📺 Сериал</option>
+                        <option value="Аниме">🎌 Аниме</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Статус</label>
+                    <select id="editStatus" onchange="toggleEditFields()">
+                        <option value="Просмотрено">✅ Просмотрено</option>
+                        <option value="В процессе">⏳ В процессе</option>
+                        <option value="Буду смотреть">📌 Буду смотреть</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div>
+                    <label>Оценка (1–10)</label>
+                    <input type="number" id="editRating" min="0" max="10" placeholder="—" />
+                </div>
+                <div>
+                    <label>Пересмотров</label>
+                    <input type="number" id="editRewatches" min="0" value="0" />
+                </div>
+            </div>
             <div id="editProgressWrap" style="display:none;">
-                <label>Просмотрено серий</label>
-                <input type="number" id="editWatchedEpisodes" min="0" placeholder="0" />
-                <label>Всего серий</label>
-                <input type="number" id="editTotalEpisodes" min="0" placeholder="0" />
+                <div class="form-row">
+                    <div>
+                        <label>Просмотрено серий</label>
+                        <input type="number" id="editWatchedEpisodes" min="0" placeholder="0" />
+                    </div>
+                    <div>
+                        <label>Всего серий</label>
+                        <input type="number" id="editTotalEpisodes" min="0" placeholder="0" />
+                    </div>
+                </div>
             </div>
             <label>Постер (URL)</label>
             <input type="text" id="editPoster" placeholder="https://image.tmdb.org/..." />
             <div class="modal-actions">
-                <button class="cancel-btn" onclick="closeModal()">Отмена</button>
-                <button class="save-btn" onclick="saveEdit()">💾 Сохранить</button>
+                <button class="btn-ghost" id="cancelModalBtn">Отмена</button>
+                <button class="btn-primary" id="saveModalBtn">💾 Сохранить</button>
             </div>
         </div>
     </div>
 
-    <!-- DETAIL MODAL -->
-    <div class="modal-overlay" id="detailModal">
+    <!-- ДЕТАЛЬНАЯ МОДАЛКА -->
+    <div class="modal-overlay detail-modal" id="detailModal">
         <div class="modal">
-            <img class="detail-poster" id="detailPoster" src="" alt="" />
-            <div class="detail-title" id="detailTitle">—</div>
-            <div class="detail-meta" id="detailMeta">—</div>
-            <div class="detail-overview" id="detailOverview">Описание отсутствует</div>
-            <div style="margin-bottom:8px;color:#888;font-size:13px;">🎬 Похожие фильмы</div>
-            <div class="detail-similar" id="detailSimilar"></div>
+            <div class="detail-hero">
+                <img id="detailPoster" src="" alt="" />
+                <div class="shade"></div>
+                <button class="detail-close" id="detailCloseBtn"><i class="fas fa-xmark"></i></button>
+                <div class="detail-hero-info">
+                    <div class="detail-title" id="detailTitle">—</div>
+                    <div class="detail-meta">
+                        <span class="badge film" id="detailType">—</span>
+                        <span class="badge status-watched" id="detailStatus">—</span>
+                        <span id="detailYear">—</span>
+                    </div>
+                </div>
+            </div>
+            <div class="detail-body">
+                <div class="detail-info-line">
+                    <div class="dil-item">
+                        <div class="dil-val" id="detailRating">—</div>
+                        <div class="dil-lbl">Оценка</div>
+                    </div>
+                    <div class="dil-item">
+                        <div class="dil-val" id="detailRewatches">0</div>
+                        <div class="dil-lbl">Пересмотры</div>
+                    </div>
+                    <div class="dil-item">
+                        <div class="dil-val" id="detailYear2">—</div>
+                        <div class="dil-lbl">Год</div>
+                    </div>
+                </div>
+                <div class="detail-overview" id="detailOverview">Описание отсутствует</div>
+                <div class="detail-section-title">Жанры</div>
+                <div class="detail-genres" id="detailGenres"></div>
+                <div class="detail-section-title">Похожее</div>
+                <div class="detail-similar" id="detailSimilar"></div>
+                <div class="modal-actions">
+                    <button class="btn-ghost" onclick="closeDetail()" style="width:100%;">Закрыть</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- МОДАЛКА ПОДТВЕРЖДЕНИЯ -->
+    <div class="modal-overlay" id="confirmModal">
+        <div class="modal" style="max-width:360px;">
+            <div class="modal-head">
+                <h3>🗑️ Подтверждение</h3>
+                <button class="modal-close" onclick="closeConfirm()"><i class="fas fa-xmark"></i></button>
+            </div>
+            <p id="confirmText" style="color:#b9b9c3;font-size:15px;line-height:1.5;"></p>
             <div class="modal-actions">
-                <button class="cancel-btn" onclick="closeDetail()" style="width:100%;">Закрыть</button>
+                <button class="btn-ghost" id="confirmNo">Отмена</button>
+                <button class="btn-danger" id="confirmYes">Удалить</button>
             </div>
         </div>
     </div>
 
     <div class="toast" id="toast"></div>
 
-    <script>
-        // ========================
-        //  TMDB API KEY
-        // ========================
-        const TMDB_API_KEY = '40f8044a3992bf1a264badac3ca33f28';
-
-        // ========================
-        //  ДАННЫЕ (вшитый бэкап)
-        // ========================
-        let items = [];
-        let currentTypeFilter = 'all';
-        let currentStatusFilter = 'all';
-        let currentEditId = null;
-        let detailItemId = null;
-
-        // Твой полный бэкап (сокращён для читаемости, но все данные есть)
-        const MY_BACKUP = [
-            { "id": 1786408934036.226, "name": "Бойцовский клуб", "type": "Фильм", "status": "Просмотрено", "rating": 10,
-                "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/66RvLrRJTm4J8l3uHXWF09AICol.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408936607.9402, "name": "Интерстеллар", "type": "Фильм", "status": "Просмотрено", "rating": 10,
-                "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/vReLRjDV9XPhiOSEW7QWow4DXwf.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408943165.2864, "name": "Железный человек", "type": "Фильм", "status": "Просмотрено", "rating": 10,
-                "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/wAKZudQn0HEXqLvaGN6BEripHbv.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408944098.6665, "name": "Железный человек 2", "type": "Фильм", "status": "Просмотрено", "rating": 10,
-                "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/rT3JszXFT2C3iYJtXSSL4R0DkU7.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408945906.875, "name": "Железный человек 3", "type": "Фильм", "status": "Просмотрено", "rating": 10,
-                "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/4AZco6uSdog5NbvJ6ILqnCveV8I.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408947423.9426, "name": "Мстители: Эра Альтрона", "type": "Фильм", "status": "Просмотрено",
-                "rating": 10, "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/6rANrpZe3g2PPeF1m3lQUK1ovpW.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408948757.577, "name": "Доктор Стрэндж", "type": "Фильм", "status": "Просмотрено", "rating": 10,
-                "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/fR4oifDjoGFAyhWyPUl3h9H1xpQ.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408950218.835, "name": "Чёрная Пантера", "type": "Фильм", "status": "Просмотрено", "rating": 10,
-                "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/ndpwgAANbZSMwgTcxmQ7o4SKDsd.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408950669.5684, "name": "Мстители: Война бесконечности", "type": "Фильм", "status": "Просмотрено",
-                "rating": 10, "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/c6RSGB6O0RaaHG3JGLq8lnUJSBC.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408951964.8638, "name": "Человек-паук: Вдали от дома", "type": "Фильм", "status": "Просмотрено",
-                "rating": 10, "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/5OSCB19RavySNpaDGtPIuByDgoa.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408952401.921, "name": "Человек-паук: Нет пути домой", "type": "Фильм", "status": "Просмотрено",
-                "rating": 10, "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/qad0kyRLHG1Qccp2A0YCCUbvhiD.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408953297.685, "name": "Чёрная Пантера: Ваканда навеки", "type": "Фильм", "status": "Просмотрено",
-                "rating": 10, "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/wSphEs4KKbewWC01NBtmCJnlZ7y.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408956512.2617, "name": "Флэш", "type": "Сериал", "status": "Просмотрено", "rating": 10,
-                "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/q14oRmj0ITMBzqHUdiGwXUIvg7t.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408956980.3774, "name": "Локи", "type": "Сериал", "status": "Просмотрено", "rating": 10,
-                "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/2GeZ9QrjySwQYG6StjCuC6bTjGl.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786409003707.117, "name": "Токийский Гуль", "type": "Аниме", "status": "Просмотрено", "rating": 10,
-                "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w92/cB9pdS49LbAryFtJpPQYwfFXbJd.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786409032403.7722, "name": "Магическая битва", "type": "Аниме", "status": "Просмотрено", "rating": 10,
-                "rewatches": 2, "poster": "https://image.tmdb.org/t/p/w92/gsBwgwaW1YWHrQYbVymarruw1yN.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786409063361.4856, "name": "Блюлок", "type": "Аниме", "status": "Просмотрено", "rating": 10,
-                "rewatches": 2, "poster": "https://image.tmdb.org/t/p/w92/wi3ddolc0BjqNDSKbrnrxESB1zl.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786409085788.3633, "name": "Баскетбол Курокко", "type": "Аниме", "status": "Просмотрено", "rating": 10,
-                "rewatches": 2, "poster": "https://image.tmdb.org/t/p/w92/fAzQrphU6I8jLwvVyU63XrIFIpt.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786409112576.7415, "name": "Соло Левелинг", "type": "Аниме", "status": "Просмотрено", "rating": 10,
-                "rewatches": 3, "poster": "https://image.tmdb.org/t/p/w92/8u56LKz0An8xa9YaFtkxsDKc5N5.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408921608.4065, "name": "Кунг-фу Панда", "type": "Фильм", "status": "Просмотрено", "rating": 9,
-                "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/dWteA8uhU6SWyawy5f4l7BnYQCm.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408922043.7869, "name": "Кунг-фу Панда 2", "type": "Фильм", "status": "Просмотрено", "rating": 9,
-                "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/cJj5uI2WrSKn1u7gfPAddeESAy4.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408922592.689, "name": "Кунг-фу Панда 3", "type": "Фильм", "status": "Просмотрено", "rating": 9,
-                "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/usLvCu3kF40Im3yutgqUAweXwjo.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408923938.247, "name": "Трансформеры 5: Последний рыцарь", "type": "Фильм", "status": "Просмотрено",
-                "rating": 9, "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/ne5PH0nU3tiCjEG5sogaOztr86k.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408924368.0334, "name": "Трансформеры 4: Эпоха истребления", "type": "Фильм", "status": "Просмотрено",
-                "rating": 9, "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/egU3gts1IFjixpQGHZ9g7fmgBiR.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408927120.1772, "name": "Тёмный рыцарь", "type": "Фильм", "status": "Просмотрено", "rating": 9,
-                "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/aPtN76OjnNKLqCJ2FJBnQOIL031.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408935963.241, "name": "Марсианин", "type": "Фильм", "status": "Просмотрено", "rating": 9,
-                "rewatches": 3, "poster": "https://image.tmdb.org/t/p/w185/6U19srkH4wI6taluviXbVaIpsau.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408938924.5115, "name": "Анчартед: На картах не значится", "type": "Фильм", "status": "Просмотрено",
-                "rating": 9, "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/gCeTyPG6g03DGsSvNOjEIAjmC9j.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408939440.2048, "name": "Волк с Уолл-стрит", "type": "Фильм", "status": "Просмотрено", "rating": 9,
-                "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/ihlWMaVZVXFzxU5wwZnbHJZ7Zpx.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408942241.931, "name": "Призрачный гонщик", "type": "Фильм", "status": "Просмотрено", "rating": 9,
-                "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/4ULbCH7RO1bkCCsBEI9gAOm9cWp.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408942695.229, "name": "Призрачный гонщик 2", "type": "Фильм", "status": "Просмотрено", "rating": 9,
-                "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/pmjeSQ4NocblwnqFDxk7zXggSQ7.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408943657.5203, "name": "Невероятный Халк", "type": "Фильм", "status": "Просмотрено", "rating": 9,
-                "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/gSpDY5e5VCohH0PaSEWEI0FdEzC.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408944607.489, "name": "Первый мститель: Противостояние", "type": "Фильм", "status": "Просмотрено",
-                "rating": 9, "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/7TWq9G7zU0lLG7WpMK6f5EQwwf2.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408946869.206, "name": "Первый мститель: Другая война", "type": "Фильм", "status": "Просмотрено",
-                "rating": 9, "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/oOmp3YMBnJMa0yDHCbhTcWG4iTm.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408952840.851, "name": "Доктор Стрэндж: В мультивселенной безумия", "type": "Фильм",
-                "status": "Просмотрено", "rating": 9, "rewatches": 0,
-                "poster": "https://image.tmdb.org/t/p/w185/sfeDNbQgEgzgM81cbPnRss6Acs4.jpg", "watchedEpisodes": 0,
-                "totalEpisodes": 0 },
-            { "id": 1786408953741.505, "name": "Тор: Любовь и гром", "type": "Фильм", "status": "Просмотрено", "rating": 9,
-                "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/xWA0Av3mO7uH2bqGU7QMfckY9si.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408918005.734, "name": "Мумия", "type": "Фильм", "status": "Просмотрено", "rating": 8, "rewatches": 0,
-                "poster": "https://image.tmdb.org/t/p/w185/vOyM4rebbIan7wANnFyCKr460mS.jpg", "watchedEpisodes": 0,
-                "totalEpisodes": 0 },
-            { "id": 1786408925298.6294, "name": "Трансформеры 2: Месть Падших", "type": "Фильм", "status": "Просмотрено",
-                "rating": 8, "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/faLkNsOPqiw2ijqDOfEy2GUscw2.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408925735.5654, "name": "Побег из Шоушенка", "type": "Фильм", "status": "Просмотрено", "rating": 8,
-                "rewatches": 3, "poster": "https://image.tmdb.org/t/p/w185/yvmKPlTIi0xdcFQIFcQKQJcI63W.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408926603.078, "name": "Бэтмен: Начало", "type": "Фильм", "status": "Просмотрено", "rating": 8,
-                "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/wiCotiyukYXWwlL1ZcjyxxhTthi.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408932685.7031, "name": "Бегущий в лабиринте: Лекарство от смерти", "type": "Фильм",
-                "status": "Просмотрено", "rating": 8, "rewatches": 0,
-                "poster": "https://image.tmdb.org/t/p/w185/6ps20wVKQghAx0KBTQvPcLPdLlc.jpg", "watchedEpisodes": 0,
-                "totalEpisodes": 0 },
-            { "id": 1786408933608.8923, "name": "Первому игроку приготовиться", "type": "Фильм", "status": "Просмотрено",
-                "rating": 8, "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/eVvMjpcw2lkS1A7hTeOzZDk0Ocf.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408937644.0503, "name": "1+1", "type": "Фильм", "status": "Просмотрено", "rating": 8, "rewatches": 0,
-                "poster": "https://image.tmdb.org/t/p/w185/zQsq95pYgjhJwYKqoFdeXlVse88.jpg", "watchedEpisodes": 0,
-                "totalEpisodes": 0 },
-            { "id": 1786408938064.433, "name": "Зверополис", "type": "Фильм", "status": "Просмотрено", "rating": 8,
-                "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/5qcww3ZqlpCqPrUessuFkdwsDL2.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408938482.6428, "name": "Шан-Чи и Легенда Десяти Колец", "type": "Фильм", "status": "Просмотрено",
-                "rating": 8, "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/rXvU6SZOGyUzy9ZHJNlVMw0OeUR.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408945026.237, "name": "Тор", "type": "Фильм", "status": "Просмотрено", "rating": 8, "rewatches": 0,
-                "poster": "https://image.tmdb.org/t/p/w185/9VnGpd2rXHikIwznL9I5r9i8TQJ.jpg", "watchedEpisodes": 0,
-                "totalEpisodes": 0 },
-            { "id": 1786408946437.5347, "name": "Тор 2: Царство тьмы", "type": "Фильм", "status": "Просмотрено", "rating": 8,
-                "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/rmII9fsUpfRmuNBhzHtarBOtHnQ.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408947896.9607, "name": "Человек-муравей", "type": "Фильм", "status": "Просмотрено", "rating": 8,
-                "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/9cMJSp2LVSzmPzMWPHIHpeBfECr.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408948333.8503, "name": "Первый мститель: Противостояние", "type": "Фильм", "status": "Просмотрено",
-                "rating": 8, "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/7TWq9G7zU0lLG7WpMK6f5EQwwf2.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408949776.6057, "name": "Тор: Рагнарёк", "type": "Фильм", "status": "Просмотрено", "rating": 8,
-                "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/7pzUsnFD4T8Syeqaojcb9zheR3H.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408951526.2234, "name": "Мстители: Финал", "type": "Фильм", "status": "Просмотрено", "rating": 8,
-                "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/dynnf8NGGfHTNMz8Vd3CzFtYjec.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408954195.456, "name": "Человек-муравей и Оса: Квантомания", "type": "Фильм", "status": "Просмотрено",
-                "rating": 8, "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/8BoKsen8orEAiFWCmQkwmONjuTX.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408955192.752, "name": "Дэдпул 2", "type": "Фильм", "status": "Просмотрено", "rating": 8,
-                "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/6ieUmjpY7bMMZqIdFxHKUEwfwSB.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408956095.0764, "name": "Человек-паук: Новый день", "type": "Фильм", "status": "Просмотрено",
-                "rating": 8, "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/jjY37mmqRWvKPRafuroumvRbR9p.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786409219302.8774, "name": "Повседневная жизнь бессмертного короля", "type": "Аниме",
-                "status": "Просмотрено", "rating": 8, "rewatches": 0,
-                "poster": "https://image.tmdb.org/t/p/w92/66mSe8NAsCRlnGPwKfW5c7yk38H.jpg", "watchedEpisodes": 0,
-                "totalEpisodes": 0 },
-            { "id": 1786408918441.6707, "name": "Закулисье реальности", "type": "Фильм", "status": "Просмотрено", "rating": 7,
-                "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/oBY8IQb9NpzbkCo0xzpz7Q1DCu.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408923050.3562, "name": "Кунг-фу Панда 4", "type": "Фильм", "status": "Просмотрено", "rating": 7,
-                "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/7RK9GHFArnQusZERwYwIaMZwRll.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408923502.0383, "name": "Бэтмен", "type": "Фильм", "status": "Просмотрено", "rating": 7, "rewatches": 0,
-                "poster": "https://image.tmdb.org/t/p/w185/3EXgl14Wmr5NcbYnBy1kavGHnvh.jpg", "watchedEpisodes": 0,
-                "totalEpisodes": 0 },
-            { "id": 1786408924824.1296, "name": "Трансформеры 3: Тёмная сторона Луны", "type": "Фильм",
-                "status": "Просмотрено", "rating": 7, "rewatches": 0,
-                "poster": "https://image.tmdb.org/t/p/w185/9wamNeMspa2wLWyZW1af6PMhfCa.jpg", "watchedEpisodes": 0,
-                "totalEpisodes": 0 },
-            { "id": 1786408927983.0725, "name": "Ущелье", "type": "Фильм", "status": "Просмотрено", "rating": 7, "rewatches": 2,
-                "poster": "https://image.tmdb.org/t/p/w185/yiUINsMKnemBFcUHqpv94yJolWH.jpg", "watchedEpisodes": 0,
-                "totalEpisodes": 0 },
-            { "id": 1786408930911.7642, "name": "Основатель", "type": "Фильм", "status": "Просмотрено", "rating": 7,
-                "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/ru0cmaiUSnlKkqLSg4ugV0iu9nN.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408931796.1902, "name": "Бегущий в лабиринте", "type": "Фильм", "status": "Просмотрено", "rating": 7,
-                "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/fvy2LrxQzSCpUuGaB9jK5z1NeA6.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408933113.4124, "name": "Зелёная книга", "type": "Фильм", "status": "Просмотрено", "rating": 7,
-                "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/fYch3e75YFnsJS9wAOOMlzErMqR.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408935045.2136, "name": "Отмель", "type": "Фильм", "status": "Просмотрено", "rating": 7, "rewatches": 0,
-                "poster": "https://image.tmdb.org/t/p/w185/cSP4j1elKE34r66CMZXduq5wqSE.jpg", "watchedEpisodes": 0,
-                "totalEpisodes": 0 },
-            { "id": 1786408935524.3188, "name": "Вышка", "type": "Фильм", "status": "Просмотрено", "rating": 7, "rewatches": 0,
-                "poster": "https://image.tmdb.org/t/p/w185/8xukbVG9JJfnpcdIEYPijVVOfhH.jpg", "watchedEpisodes": 0,
-                "totalEpisodes": 0 },
-            { "id": 1786408940021.1, "name": "Поймай меня, если сможешь", "type": "Фильм", "status": "Просмотрено",
-                "rating": 7, "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/9Izej6CiwFkptv6aTbRhersjAiT.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408940457.5159, "name": "Хэнкок", "type": "Фильм", "status": "Просмотрено", "rating": 7, "rewatches": 0,
-                "poster": "https://image.tmdb.org/t/p/w185/zH9RhVlpMBzGp9VM7jVmlnZpRuR.jpg", "watchedEpisodes": 0,
-                "totalEpisodes": 0 },
-            { "id": 1786408941321.402, "name": "Шазам!", "type": "Фильм", "status": "Просмотрено", "rating": 7, "rewatches": 0,
-                "poster": "https://image.tmdb.org/t/p/w185/s4byZ8CP7NLfH54FV3QF6l0JLSh.jpg", "watchedEpisodes": 0,
-                "totalEpisodes": 0 },
-            { "id": 1786408941779.318, "name": "Чёрный Адам", "type": "Фильм", "status": "Просмотрено", "rating": 7,
-                "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/ebtyQ43I2QSeEJiXYNFgSp4yuYT.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408945451.1167, "name": "Мстители", "type": "Фильм", "status": "Просмотрено", "rating": 7,
-                "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/ztkYgL0zHJLnEPY5VabK9OlmXxx.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408949235.7769, "name": "Человек-паук: Возвращение домой", "type": "Фильм", "status": "Просмотрено",
-                "rating": 7, "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/gBCq5vt7XXUMjfxi2OguArduUKP.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408954752.836, "name": "Дэдпул", "type": "Фильм", "status": "Просмотрено", "rating": 7, "rewatches": 0,
-                "poster": "https://image.tmdb.org/t/p/w185/r5PYZGOiIQuGpaZas9TTplNZ5Ox.jpg", "watchedEpisodes": 0,
-                "totalEpisodes": 0 },
-            { "id": 1786409162553.409, "name": "Бегущий в лабиринте: Испытание огнём", "type": "Фильм",
-                "status": "Просмотрено", "rating": 7, "rewatches": 0,
-                "poster": "https://image.tmdb.org/t/p/w92/tA3uIM8dnZqwJnFyR9A7zLE5Wd1.jpg", "watchedEpisodes": 0,
-                "totalEpisodes": 0 },
-            { "id": 1786408926185.54, "name": "Тёмный рыцарь: Возрождение легенды", "type": "Фильм", "status": "Просмотрено",
-                "rating": 6, "rewatches": 2, "poster": "https://image.tmdb.org/t/p/w185/cAwasqprFijx73Hz9qMBcLyEA5N.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408930481.2852, "name": "Телохранитель киллера", "type": "Фильм", "status": "Просмотрено",
-                "rating": 6, "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/i8WMBQtoyug6Twa1RP8QHLCxVdH.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408934591.9363, "name": "Мгла", "type": "Фильм", "status": "Просмотрено", "rating": 6, "rewatches": 0,
-                "poster": "https://image.tmdb.org/t/p/w185/pCoraG5JrOtHujzbTy78zcCJKsJ.jpg", "watchedEpisodes": 0,
-                "totalEpisodes": 0 },
-            { "id": 1786408951107.0752, "name": "Человек-муравей и Оса", "type": "Фильм", "status": "Просмотрено",
-                "rating": 6, "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/5r85N1iOnHFoWkyC0EeOw9aEqOW.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408955646.4158, "name": "Дэдпул и Росомаха", "type": "Фильм", "status": "Просмотрено", "rating": 6,
-                "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/4Li3gy8Ga6q0bAz2odg7ZFoRqLy.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408918887.9487, "name": "Обсессия", "type": "Фильм", "status": "Просмотрено", "rating": 5,
-                "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/cdRHtfzxbpjxD5yOyFrRummb0yO.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408921156.3176, "name": "Меню", "type": "Фильм", "status": "Просмотрено", "rating": 5, "rewatches": 0,
-                "poster": "https://image.tmdb.org/t/p/w185/84khkKvBldEp3h1PQUe6v8ItpR7.jpg", "watchedEpisodes": 0,
-                "totalEpisodes": 0 },
-            { "id": 1786408927561.8381, "name": "Зомбилэнд", "type": "Фильм", "status": "Просмотрено", "rating": 5,
-                "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/wmsBwd3dtd9i1Pl6nDZyd0WlTeO.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408928471.062, "name": "Оно", "type": "Фильм", "status": "Просмотрено", "rating": 5, "rewatches": 0,
-                "poster": "https://image.tmdb.org/t/p/w185/7EVGJJX3XZfS9oOFF8SxBGv1BBQ.jpg", "watchedEpisodes": 0,
-                "totalEpisodes": 0 },
-            { "id": 1786408928878.91, "name": "Оно 2", "type": "Фильм", "status": "Просмотрено", "rating": 5, "rewatches": 0,
-                "poster": "https://image.tmdb.org/t/p/w185/4yKBNPzgPnDndD0th2IrxYkA6rA.jpg", "watchedEpisodes": 0,
-                "totalEpisodes": 0 },
-            { "id": 1786408929974.7617, "name": "Лекарство от здоровья", "type": "Фильм", "status": "Просмотрено",
-                "rating": 5, "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/qN67d5SCiilDe8caBHi4GH6Ih8o.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408920282.7437, "name": "Одержимость", "type": "Фильм", "status": "Просмотрено", "rating": 4,
-                "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/w1Jucf5vYovXb68FU6OOwgJREDD.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408920724.4858, "name": "Пять ночей с Фредди 2", "type": "Фильм", "status": "Просмотрено",
-                "rating": 4, "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/geZhhgqqMrOQdhm4Kv9ulxPI5ZN.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408931355.506, "name": "Шоу Трумана", "type": "Фильм", "status": "Просмотрено", "rating": 4,
-                "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/lYMMRbMZCyn12t6HLVYfmWfHrrq.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408937158.4094, "name": "Время", "type": "Фильм", "status": "Просмотрено", "rating": 4,
-                "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/iPqj7g6Ae4p5HqwmUm11AiqIokT.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408919337.491, "name": "Я иду искать 2", "type": "Фильм", "status": "Просмотрено", "rating": 3,
-                "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/tlqqwUXe4uK3hqmghtYSir1i80O.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408919866.7527, "name": "Горничная", "type": "Фильм", "status": "Просмотрено", "rating": 3,
-                "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/l9G0cHotnQRYJNJSBNdMjfwb5Fd.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408940899.2363, "name": "Большой Стэн", "type": "Фильм", "status": "Просмотрено", "rating": 3,
-                "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/2D4UyCiRrIGSJodGLUe6xoEgsSr.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786408929404.41, "name": "Паразиты", "type": "Фильм", "status": "Просмотрено", "rating": 2,
-                "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w185/9xL2PwIOerz8jld06J9cxwuJfoD.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 },
-            { "id": 1786409268791.2117, "name": "Реинкарнация безработного", "type": "Аниме", "status": "В процессе",
-                "rating": 0, "rewatches": 0, "poster": "https://image.tmdb.org/t/p/w92/bC2DRV5S6BDtW0DmAqN3g3xtLoP.jpg",
-                "watchedEpisodes": 0, "totalEpisodes": 0 }
-        ];
-
-        // ========================
-        //  ЗАГРУЗКА ДАННЫХ
-        // ========================
-        function loadData() {
-            const saved = localStorage.getItem('myKinoArchive');
-            if (saved) {
-                try {
-                    items = JSON.parse(saved);
-                    items.forEach(item => {
-                        if (item.watchedEpisodes === undefined) item.watchedEpisodes = 0;
-                        if (item.totalEpisodes === undefined) item.totalEpisodes = 0;
-                    });
-                } catch (e) { items = []; }
-            }
-            if (!items || !items.length) {
-                items = MY_BACKUP;
-            }
-            render();
-        }
-
-        function saveData() {
-            localStorage.setItem('myKinoArchive', JSON.stringify(items));
-            render();
-        }
-
-        // ========================
-        //  RENDER
-        // ========================
-        function render() {
-            const cardsEl = document.getElementById('cards');
-            const emptyEl = document.getElementById('emptyState');
-            const searchInput = document.getElementById('searchInput').value.toLowerCase().trim();
-
-            let filtered = items;
-
-            // Фильтр по типу
-            if (currentTypeFilter !== 'all') {
-                filtered = filtered.filter(item => item.type === currentTypeFilter);
-            }
-
-            // Фильтр по статусу
-            if (currentStatusFilter !== 'all') {
-                filtered = filtered.filter(item => item.status === currentStatusFilter);
-            }
-
-            // Поиск
-            if (searchInput) {
-                filtered = filtered.filter(item => item.name.toLowerCase().includes(searchInput));
-            }
-
-            filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-
-            document.getElementById('totalCount').textContent = items.length;
-            document.getElementById('filmCount').textContent = items.filter(i => i.type === 'Фильм').length;
-            document.getElementById('serialCount').textContent = items.filter(i => i.type === 'Сериал').length;
-            document.getElementById('animeCount').textContent = items.filter(i => i.type === 'Аниме').length;
-
-            if (!filtered.length) {
-                cardsEl.innerHTML = '';
-                emptyEl.style.display = 'block';
-                return;
-            }
-            emptyEl.style.display = 'none';
-
-            cardsEl.innerHTML = filtered.map(item => {
-                const ratingClass = item.rating >= 8 ? 'high' : item.rating >= 5 ? 'mid' : item.rating > 0 ? 'low' :
-                    'zero';
-                const ratingText = item.rating || '?';
-                const posterHtml = item.poster ?
-                    `<img src="${item.poster}" alt="${item.name}" loading="lazy" onerror="this.style.display='none'" />` :
-                    `<img src="" alt="" style="background:#111111;display:flex;align-items:center;justify-content:center;font-size:20px;color:#444444;" />`;
-
-                const typeBadge = {
-                    'Фильм': 'film',
-                    'Сериал': 'serial',
-                    'Аниме': 'anime'
-                } [item.type] || '';
-
-                const statusClass = item.status === 'В процессе' ? 'watching' : item.status === 'Буду смотреть' ? 'plan' :
-                    '';
-
-                let progressText = '';
-                if ((item.type === 'Сериал' || item.type === 'Аниме') && item.status === 'В процессе') {
-                    const watched = item.watchedEpisodes || 0;
-                    const total = item.totalEpisodes || '?';
-                    progressText = `<span class="progress-text">${watched}/${total} серий</span>`;
-                }
-
-                const rewatchText = item.rewatches ? `${item.rewatches} раз` : '';
-
-                return `
-                        <div class="card" onclick="openDetail('${item.id}')">
-                            ${posterHtml}
-                            <div class="info">
-                                <div class="title">${item.name}</div>
-                                <div class="meta">
-                                    <span class="badge ${typeBadge}">${item.type || '?'}</span>
-                                    <span class="badge status ${statusClass}">${item.status || 'Просмотрено'}</span>
-                                    ${progressText}
-                                    ${rewatchText ? `<span style="color:#666;font-size:12px;">🔄 ${rewatchText}</span>` : ''}
-                                </div>
-                            </div>
-                            <div class="rating-circle ${ratingClass}">${ratingText}</div>
-                            <div class="actions" onclick="event.stopPropagation();">
-                                <button class="edit" onclick="openEdit('${item.id}')"><i class="fas fa-pen"></i></button>
-                                <button class="delete" onclick="deleteItem('${item.id}')"><i class="fas fa-trash"></i></button>
-                            </div>
-                        </div>
-                    `;
-            }).join('');
-        }
-
-        // ========================
-        //  CRUD
-        // ========================
-        function addItem(name, type, status, rating, rewatches, poster, watchedEpisodes, totalEpisodes) {
-            // Проверка на дубликат
-            const exists = items.some(item => item.name.toLowerCase() === name.toLowerCase() && item.type === type);
-            if (exists) {
-                showToast('⚠️ Такой фильм уже есть в списке!', true);
-                return false;
-            }
-
-            items.push({
-                id: Date.now() + Math.random(),
-                name: name.trim(),
-                type: type || 'Фильм',
-                status: status || 'Просмотрено',
-                rating: parseInt(rating) || 0,
-                rewatches: parseInt(rewatches) || 0,
-                poster: poster || '',
-                watchedEpisodes: parseInt(watchedEpisodes) || 0,
-                totalEpisodes: parseInt(totalEpisodes) || 0,
-            });
-            saveData();
-            showToast('✅ Добавлено!');
-            return true;
-        }
-
-        function deleteItem(id) {
-            if (!confirm('Удалить?')) return;
-            items = items.filter(item => item.id != id);
-            saveData();
-            showToast('🗑️ Удалено');
-        }
-
-        function openEdit(id) {
-            const item = items.find(i => i.id == id);
-            if (!item) return;
-            currentEditId = id;
-            document.getElementById('editName').value = item.name || '';
-            document.getElementById('editType').value = item.type || 'Фильм';
-            document.getElementById('editStatus').value = item.status || 'Просмотрено';
-            document.getElementById('editRating').value = item.rating || 0;
-            document.getElementById('editRewatches').value = item.rewatches || 0;
-            document.getElementById('editPoster').value = item.poster || '';
-            document.getElementById('editWatchedEpisodes').value = item.watchedEpisodes || 0;
-            document.getElementById('editTotalEpisodes').value = item.totalEpisodes || 0;
-            document.getElementById('modalTitle').textContent = '✏️ ' + item.name;
-            toggleEditFields();
-            document.getElementById('editModal').classList.add('show');
-        }
-
-        function closeModal() {
-            document.getElementById('editModal').classList.remove('show');
-            currentEditId = null;
-        }
-
-        function toggleEditFields() {
-            const status = document.getElementById('editStatus').value;
-            const wrap = document.getElementById('editProgressWrap');
-            const ratingInput = document.getElementById('editRating');
-            if (status === 'В процессе') {
-                wrap.style.display = 'block';
-                ratingInput.disabled = true;
-                ratingInput.value = 0;
-            } else {
-                wrap.style.display = 'none';
-                ratingInput.disabled = false;
-            }
-        }
-
-        function saveEdit() {
-            const item = items.find(i => i.id == currentEditId);
-            if (!item) return;
-            item.name = document.getElementById('editName').value.trim() || item.name;
-            item.type = document.getElementById('editType').value;
-            item.status = document.getElementById('editStatus').value;
-            item.rating = parseInt(document.getElementById('editRating').value) || 0;
-            item.rewatches = parseInt(document.getElementById('editRewatches').value) || 0;
-            item.poster = document.getElementById('editPoster').value.trim() || '';
-            item.watchedEpisodes = parseInt(document.getElementById('editWatchedEpisodes').value) || 0;
-            item.totalEpisodes = parseInt(document.getElementById('editTotalEpisodes').value) || 0;
-            saveData();
-            closeModal();
-            showToast('💾 Сохранено!');
-        }
-
-        // ========================
-        //  ПОИСК TMDB
-        // ========================
-        async function searchTMDB() {
-            const query = document.getElementById('searchInput').value.trim();
-            if (!query) {
-                showToast('Введите название для поиска', true);
-                return;
-            }
-
-            const resultsEl = document.getElementById('searchResults');
-            resultsEl.innerHTML = '<div style="color:#666;padding:12px;">⏳ Поиск...</div>';
-            resultsEl.classList.add('show');
-
-            try {
-                const url =
-                    `https://api.themoviedb.org/3/search/multi?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}&language=ru-RU`;
-                const response = await fetch(url);
-                const data = await response.json();
-
-                if (!data.results || !data.results.length) {
-                    resultsEl.innerHTML = '<div style="color:#666;padding:12px;">😕 Ничего не найдено</div>';
-                    return;
-                }
-
-                const results = data.results.slice(0, 8);
-                resultsEl.innerHTML = results.map(item => {
-                    const title = item.title || item.name || 'Без названия';
-                    const year = item.release_date ? item.release_date.slice(0, 4) : item.first_air_date ? item
-                        .first_air_date.slice(0, 4) : '';
-                    const mediaType = item.media_type === 'movie' ? 'Фильм' : item.media_type === 'tv' ? 'Сериал' :
-                        'Фильм';
-                    const rating = item.vote_average ? Math.round(item.vote_average * 10) / 10 : '';
-                    const poster = item.poster_path ?
-                        `https://image.tmdb.org/t/p/w92${item.poster_path}` :
-                        '';
-
-                    // Проверяем, есть ли уже в списке
-                    const exists = items.some(i => i.name.toLowerCase() === title.toLowerCase() && i.type ===
-                    mediaType);
-
-                    return `
-                            <div class="search-result-item" onclick="addFromSearch('${title}', '${mediaType}', '${rating}', '${poster}')">
-                                ${poster ? `<img src="${poster}" alt="${title}" />` : '<div style="width:44px;height:66px;background:#111111;border-radius:6px;flex-shrink:0;"></div>'}
-                                <div class="info">
-                                    <div class="title">${title} ${exists ? '⚠️ уже есть' : ''}</div>
-                                    <div class="meta">${mediaType} ${year ? '· ' + year : ''} ${rating ? '⭐ ' + rating : ''}</div>
-                                </div>
-                                <button class="add-btn" style="${exists ? 'opacity:0.3;' : ''}"><i class="fas fa-plus"></i></button>
-                            </div>
-                        `;
-                }).join('');
-
-            } catch (e) {
-                resultsEl.innerHTML = '<div style="color:#e74c3c;padding:12px;">❌ Ошибка запроса. Проверь интернет.</div>';
-                console.error(e);
-            }
-        }
-
-        function addFromSearch(name, type, rating, poster) {
-            const added = addItem(name, type, 'Просмотрено', rating || 0, 0, poster, 0, 0);
-            if (added) {
-                document.getElementById('searchResults').classList.remove('show');
-                document.getElementById('searchInput').value = '';
-            }
-        }
-
-        // ========================
-        //  ФИЛЬТРЫ
-        // ========================
-        // Фильтры по типу
-        document.getElementById('typeFilters').addEventListener('click', function(e) {
-            const btn = e.target.closest('button');
-            if (!btn) return;
-            document.querySelectorAll('#typeFilters button').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            currentTypeFilter = btn.dataset.filter;
-            render();
-        });
-
-        // Фильтры по статусу
-        document.getElementById('statusFilters').addEventListener('click', function(e) {
-            const btn = e.target.closest('button');
-            if (!btn) return;
-            document.querySelectorAll('#statusFilters button').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            currentStatusFilter = btn.dataset.status;
-            render();
-        });
-
-        // Поиск
-        let searchTimeout;
-        document.getElementById('searchInput').addEventListener('input', function() {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                const val = this.value.trim();
-                if (!val) {
-                    document.getElementById('searchResults').classList.remove('show');
-                }
-                render();
-            }, 200);
-        });
-        document.getElementById('searchInput').addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') searchTMDB();
-        });
-
-        // ========================
-        //  ДЕТАЛЬНАЯ СТРАНИЦА
-        // ========================
-        async function openDetail(id) {
-            const item = items.find(i => i.id == id);
-            if (!item) return;
-
-            detailItemId = id;
-            const modal = document.getElementById('detailModal');
-            const poster = document.getElementById('detailPoster');
-            const title = document.getElementById('detailTitle');
-            const meta = document.getElementById('detailMeta');
-            const overview = document.getElementById('detailOverview');
-            const similar = document.getElementById('detailSimilar');
-
-            poster.src = item.poster || '';
-            poster.alt = item.name;
-            title.textContent = item.name;
-            meta.textContent =
-            `${item.type} · ${item.status} · Твоя оценка: ${item.rating || 'нет'} ⭐`;
-            overview.textContent = '⏳ Загрузка описания...';
-            similar.innerHTML = '<div style="color:#666;padding:8px;">Загрузка похожих...</div>';
-
-            modal.classList.add('show');
-
-            try {
-                const url =
-                    `https://api.themoviedb.org/3/search/multi?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(item.name)}&language=ru-RU`;
-                const resp = await fetch(url);
-                const data = await resp.json();
-
-                if (data.results && data.results.length) {
-                    const first = data.results[0];
-                    const desc = first.overview || 'Описание отсутствует';
-                    overview.textContent = desc;
-
-                    const similarUrl =
-                        `https://api.themoviedb.org/3/${first.media_type === 'movie' ? 'movie' : 'tv'}/${first.id}/similar?api_key=${TMDB_API_KEY}&language=ru-RU`;
-                    const similarResp = await fetch(similarUrl);
-                    const similarData = await similarResp.json();
-
-                    if (similarData.results && similarData.results.length) {
-                        similar.innerHTML = similarData.results.slice(0, 10).map(s => {
-                            const posterPath = s.poster_path ?
-                                `https://image.tmdb.org/t/p/w92${s.poster_path}` :
-                                '';
-                            const name = s.title || s.name || '—';
-                            return `
-                                    <div class="detail-similar-item" onclick="openDetailByName('${name}')">
-                                        ${posterPath ? `<img src="${posterPath}" alt="${name}" />` : '<div style="width:80px;height:120px;background:#111111;border-radius:8px;"></div>'}
-                                        <div class="name">${name}</div>
-                                    </div>
-                                `;
-                        }).join('');
-                    } else {
-                        similar.innerHTML = '<div style="color:#666;padding:8px;">Похожих не найдено</div>';
-                    }
-                } else {
-                    overview.textContent = 'Описание не найдено';
-                    similar.innerHTML = '<div style="color:#666;padding:8px;">Похожих не найдено</div>';
-                }
-            } catch (e) {
-                overview.textContent = '❌ Ошибка загрузки описания';
-                similar.innerHTML = '<div style="color:#666;padding:8px;">Ошибка загрузки</div>';
-            }
-        }
-
-        async function openDetailByName(name) {
-            const item = items.find(i => i.name.toLowerCase() === name.toLowerCase());
-            if (item) {
-                openDetail(item.id);
-            } else {
-                showToast('🔍 Ищем...', false);
-                try {
-                    const url =
-                        `https://api.themoviedb.org/3/search/multi?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(name)}&language=ru-RU`;
-                    const resp = await fetch(url);
-                    const data = await resp.json();
-                    if (data.results && data.results.length) {
-                        const first = data.results[0];
-                        const title = first.title || first.name || name;
-                        const type = first.media_type === 'movie' ? 'Фильм' : first.media_type === 'tv' ? 'Сериал' :
-                            'Фильм';
-                        const poster = first.poster_path ? `https://image.tmdb.org/t/p/w185${first.poster_path}` : '';
-                        const rating = first.vote_average ? Math.round(first.vote_average * 10) / 10 : 0;
-                        const added = addItem(title, type, 'Буду смотреть', rating, 0, poster, 0, 0);
-                        if (added) {
-                            const newItem = items[items.length - 1];
-                            openDetail(newItem.id);
-                        }
-                    } else {
-                        showToast('❌ Не найден', true);
-                    }
-                } catch (e) {
-                    showToast('❌ Ошибка', true);
-                }
-            }
-        }
-
-        function closeDetail() {
-            document.getElementById('detailModal').classList.remove('show');
-        }
-
-        // ========================
-        //  ЭКСПОРТ / ИМПОРТ
-        // ========================
-        function exportData() {
-            const blob = new Blob([JSON.stringify(items, null, 2)], { type: 'application/json' });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = 'my_archive_backup.json';
-            a.click();
-            showToast('📦 Бэкап скачан!');
-        }
-
-        function importData(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const data = JSON.parse(e.target.result);
-                    if (Array.isArray(data) && data.length) {
-                        data.forEach(item => {
-                            if (item.watchedEpisodes === undefined) item.watchedEpisodes = 0;
-                            if (item.totalEpisodes === undefined) item.totalEpisodes = 0;
-                        });
-                        items = data;
-                        saveData();
-                        showToast('✅ Импорт успешен!');
-                    } else {
-                        showToast('❌ Неверный формат', true);
-                    }
-                } catch (err) {
-                    showToast('❌ Ошибка чтения файла', true);
-                }
-            };
-            reader.readAsText(file);
-            event.target.value = '';
-        }
-
-        // ========================
-        //  TOAST
-        // ========================
-        let toastTimeout;
-
-        function showToast(message, isError = false) {
-            const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.className = 'toast show' + (isError ? ' error' : '');
-            clearTimeout(toastTimeout);
-            toastTimeout = setTimeout(() => {
-                toast.classList.remove('show');
-            }, 3000);
-        }
-
-        // ========================
-        //  ЗАПУСК
-        // ========================
-        loadData();
-
-        document.getElementById('editModal').addEventListener('click', function(e) {
-            if (e.target === this) closeModal();
-        });
-        document.getElementById('detailModal').addEventListener('click', function(e) {
-            if (e.target === this) closeDetail();
-        });
-
-        console.log('🎬 Мой киноархив загружен!');
-        console.log('📦 Всего записей:', items.length);
-        console.log('👆 Кликни на любую карточку для деталей');
-        console.log('🔍 Поиск теперь не дублирует фильмы');
-    </script>
-
+    <script src="data.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>
