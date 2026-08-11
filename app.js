@@ -67,24 +67,44 @@ const STORAGE_KEY = 'myKinoArchive';
 const VIEW_KEY = 'kinoViewMode';
 const THEME_KEY = 'kinoTheme';
 const BACKFILL_KEY = 'kinoBackfillDone';
+const TRASH_KEY = 'kinoTrash';
+const FOLDERS_KEY = 'kinoFolders';
+const SIZE_KEY = 'kinoCardSize';
+const WEEK_KEY = 'kinoWeekToast';
+const TRASH_TTL = 30 * 24 * 3600 * 1000;
 
 let items = [];
+let trash = loadJSON(TRASH_KEY, []);
+let folders = loadJSON(FOLDERS_KEY, []);
 let typeFilter = 'all';
 let statusFilter = 'all';
 let decadeFilter = 'all';
 let sortMode = 'rating-desc';
 let viewMode = localStorage.getItem(VIEW_KEY) || 'grid';
 let theme = localStorage.getItem(THEME_KEY) || 'dark';
+let cardSize = localStorage.getItem(SIZE_KEY) || 'm';
 let editId = null;
 let toastTimer = null;
 let searchTimer = null;
 let dragId = null;
+let promptCallback = null;
+let rateId = null;
+let detailId = null;
 
 // ========================
 //  ХЕЛПЕРЫ
 // ========================
 const $ = sel => document.querySelector(sel);
 const $$ = sel => document.querySelectorAll(sel);
+
+function loadJSON(key, fallback) {
+    try {
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : fallback;
+    } catch (e) {
+        return fallback;
+    }
+}
 
 function esc(str) {
     return String(str == null ? '' : str)
@@ -99,14 +119,90 @@ const TYPE_BADGES = { 'Фильм': 'film', 'Сериал': 'serial', 'Аним�
 const STATUS_BADGES = {
     'Просмотрено': 'status-watched',
     'В процессе': 'status-watching',
+    'На паузе': 'status-pause',
     'Буду смотреть': 'status-plan'
 };
 const STATUS_ICONS = {
     'Просмотрено': '✅',
     'В процессе': '⏳',
+    'На паузе': '⏸️',
     'Буду смотреть': '📌'
 };
 const TYPE_ICONS = { 'Фильм': '🎬', 'Сериал': '📺', 'Аниме': '🎌' };
+
+const GENRE_COLORS = {
+    'Фантастика': '#60a5fa',
+    'Фэнтези': '#c084fc',
+    'Драма': '#f87171',
+    'Комедия': '#4ade80',
+    'Боевик': '#fb923c',
+    'Ужасы': '#a78bfa',
+    'Триллер': '#2dd4bf',
+    'Приключения': '#facc15',
+    'Криминал': '#f472b6',
+    'Детектив': '#94a3b8',
+    'Мультфильм': '#f472b6',
+    'Семейный': '#a3e635',
+    'Мелодрама': '#fb7185',
+    'Мистика': '#818cf8',
+    'Военный': '#a8a29e',
+    'Документальный': '#22d3ee',
+    'Вестерн': '#d97706',
+    'История': '#eab308',
+    'Музыка': '#34d399',
+    'Мюзикл': '#2dd4bf',
+    'Телевизионный фильм': '#64748b'
+};
+
+function genreColor(name) {
+    return GENRE_COLORS[name] || '#888888';
+}
+
+function genreTagHtml(names, limit) {
+    return (names || []).slice(0, limit || 2).map(g =>
+        `<span class="genre-tag" style="background:${genreColor(g)}22;color:${genreColor(g)};">${esc(g)}</span>`
+    ).join('');
+}
+
+const CLASSICS = [
+    { name: 'Крёстный отец', type: 'Фильм', year: 1972 },
+    { name: 'Криминальное чтиво', type: 'Фильм', year: 1994 },
+    { name: 'Матрица', type: 'Фильм', year: 1999 },
+    { name: 'Начало', type: 'Фильм', year: 2010 },
+    { name: 'Форрест Гамп', type: 'Фильм', year: 1994 },
+    { name: 'Список Шиндлера', type: 'Фильм', year: 1993 },
+    { name: 'Зелёная миля', type: 'Фильм', year: 1999 },
+    { name: 'Гладиатор', type: 'Фильм', year: 2000 },
+    { name: 'Терминатор 2: Судный день', type: 'Фильм', year: 1991 },
+    { name: 'Молчание ягнят', type: 'Фильм', year: 1991 },
+    { name: 'Отступники', type: 'Фильм', year: 2006 },
+    { name: 'Большой куш', type: 'Фильм', year: 2000 },
+    { name: 'Остров проклятых', type: 'Фильм', year: 2010 },
+    { name: 'Достать ножи', type: 'Фильм', year: 2019 },
+    { name: 'Дюна', type: 'Фильм', year: 2021 },
+    { name: 'Аватар', type: 'Фильм', year: 2009 },
+    { name: 'Титаник', type: 'Фильм', year: 1997 },
+    { name: 'Хатико: Самый верный друг', type: 'Фильм', year: 2009 },
+    { name: 'Побег из Шоушенка', type: 'Фильм', year: 1994 },
+    { name: 'Назад в будущее', type: 'Фильм', year: 1985 },
+    { name: 'Индиана Джонс: В поисках утраченного ковчега', type: 'Фильм', year: 1981 },
+    { name: 'Крепкий орешек', type: 'Фильм', year: 1988 },
+    { name: 'Один дома', type: 'Фильм', year: 1990 },
+    { name: 'Гарри Поттер и философский камень', type: 'Фильм', year: 2001 },
+    { name: 'Властелин колец: Братство кольца', type: 'Фильм', year: 2001 },
+    { name: '12 разгневанных мужчин', type: 'Фильм', year: 1957 },
+    { name: 'Драйв', type: 'Фильм', year: 2011 },
+    { name: 'Ла-Ла Ленд', type: 'Фильм', year: 2016 },
+    { name: 'Одержимость', type: 'Фильм', year: 2014 },
+    { name: 'Интерстеллар', type: 'Фильм', year: 2014 },
+    { name: 'Унесённые призраками', type: 'Аниме', year: 2001 },
+    { name: 'Мой сосед Тоторо', type: 'Аниме', year: 1988 },
+    { name: 'Во все тяжкие', type: 'Сериал', year: 2008 },
+    { name: 'Игра престолов', type: 'Сериал', year: 2011 },
+    { name: 'Шерлок', type: 'Сериал', year: 2010 },
+    { name: 'Друзья', type: 'Сериал', year: 1994 },
+    { name: 'Чернобыль', type: 'Сериал', year: 2019 }
+];
 
 // ========================
 //  ДАННЫЕ
@@ -118,6 +214,10 @@ function normalize(item) {
     if (item.watchedAt === undefined) item.watchedAt = '';
     if (item.year === undefined) item.year = null;
     if (item.tmdbRating === undefined) item.tmdbRating = null;
+    if (item.genres === undefined) item.genres = [];
+    if (item.overview === undefined) item.overview = '';
+    if (item.runtime === undefined) item.runtime = null;
+    if (item.important === undefined) item.important = false;
     return item;
 }
 
@@ -138,6 +238,8 @@ function loadData() {
         items = MY_BACKUP.map(normalize);
     }
     render();
+    purgeTrash();
+    weeklySummary();
 }
 
 function saveData() {
@@ -156,7 +258,8 @@ function getFiltered() {
     let filtered = items;
 
     if (typeFilter !== 'all') {
-        filtered = filtered.filter(item => item.type === typeFilter);
+        filtered = filtered.filter(item =>
+            typeFilter === 'important' ? item.important : item.type === typeFilter);
     }
     if (statusFilter !== 'all') {
         filtered = filtered.filter(item => item.status === statusFilter);
@@ -166,7 +269,18 @@ function getFiltered() {
             item.year && Math.floor(item.year / 10) * 10 === parseInt(decadeFilter, 10));
     }
     if (query) {
-        filtered = filtered.filter(item => item.name.toLowerCase().includes(query));
+        const mode = $('#searchMode') ? $('#searchMode').value : 'name';
+        filtered = filtered.filter(item => {
+            const nameHit = item.name.toLowerCase().includes(query);
+            if (mode === 'all') {
+                const genresHit = (item.genres || []).some(g => String(g).toLowerCase().includes(query));
+                const yearHit = item.year && String(item.year).includes(query);
+                const statusHit = (item.status || '').toLowerCase().includes(query);
+                const overviewHit = (item.overview || '').toLowerCase().includes(query);
+                return nameHit || genresHit || yearHit || statusHit || overviewHit;
+            }
+            return nameHit;
+        });
     }
 
     switch (sortMode) {
@@ -215,6 +329,8 @@ function renderStats() {
     $('#serialCount').textContent = serials;
     $('#animeCount').textContent = anime;
     $('#avgRating').textContent = avg;
+    const lvl = getLevel(items.length);
+    $('#levelVal').textContent = lvl.name;
 }
 
 function ratingMeta(rating) {
@@ -237,7 +353,7 @@ function ratingRingHtml(rating) {
 
 function ratingBadgeHtml(rating) {
     const m = ratingMeta(rating);
-    return `<div class="l-rating ${m.cls}">${m.txt}</div>`;
+    return `<div class="l-rating ${m.cls}" data-rate title="Быстрая оценка">${m.txt}</div>`;
 }
 
 function posterHtml(item, cls) {
@@ -248,13 +364,15 @@ function posterHtml(item, cls) {
 }
 
 function progressHtml(item) {
-    if ((item.type !== 'Сериал' && item.type !== 'Аниме') || item.status !== 'В процессе') return '';
+    if (item.type !== 'Сериал' && item.type !== 'Аниме') return '';
+    if (item.status !== 'В процессе' && item.status !== 'На паузе') return '';
     const watched = item.watchedEpisodes || 0;
     const total = item.totalEpisodes || 0;
     const pct = total > 0 ? Math.min(100, Math.round((watched / total) * 100)) : 0;
+    const left = total > 0 ? ` · осталось ${Math.max(0, total - watched)}` : '';
     return `
         <div class="progress-wrap"><div class="progress-fill" style="width:${pct}%"></div></div>
-        <div class="progress-label">${watched}/${total} серий · ${pct}%</div>`;
+        <div class="progress-label">${watched}/${total} серий · ${pct}%${left}</div>`;
 }
 
 function render() {
@@ -266,10 +384,21 @@ function render() {
 
     const dnd = sortMode === 'manual';
     cardsEl.className = viewMode === 'grid' ? 'cards' : 'cards list';
+    if (cardSize !== 'm') cardsEl.classList.add('size-' + cardSize);
     if (dnd) cardsEl.classList.add('dnd');
 
     $('#decadeFilters').style.display = items.some(i => i.year) ? 'flex' : 'none';
+    $('#sizeToggle').style.display = viewMode === 'grid' ? 'inline-flex' : 'none';
+    $('#sizeS').classList.toggle('active', cardSize === 's');
+    $('#sizeM').classList.toggle('active', cardSize === 'm');
+    $('#sizeL').classList.toggle('active', cardSize === 'l');
+    $('#menuTrashCount').textContent = trash.length ? trash.length : '';
+    renderFolders();
+    renderClassics();
     renderRecent();
+
+    const oldestId = items.length
+        ? items.slice().sort((a, b) => a.id - b.id)[0].id : null;
 
     if (!filtered.length) {
         cardsEl.innerHTML = '';
@@ -287,19 +416,32 @@ function render() {
             const rewatch = item.rewatches > 0
                 ? `<span class="grewatch"><i class="fas fa-rotate-right"></i> ×${item.rewatches}</span>` : '';
             const quickBtn = item.status === 'В процессе'
-                ? `<button class="act-finish" title="Посмотрел!"><i class="fas fa-check"></i></button>`
-                : item.status === 'Буду смотреть'
-                    ? `<button class="act-start" title="Начать смотреть"><i class="fas fa-play"></i></button>` : '';
+                ? `<button class="act-finish" title="Посмотрел!"><i class="fas fa-check"></i></button>
+                   <button class="act-pause" title="На паузу"><i class="fas fa-pause"></i></button>`
+                : item.status === 'На паузе'
+                    ? `<button class="act-start" title="Продолжить"><i class="fas fa-play"></i></button>
+                       <button class="act-finish" title="Посмотрел!"><i class="fas fa-check"></i></button>`
+                    : item.status === 'Буду смотреть'
+                        ? `<button class="act-start" title="Начать смотреть"><i class="fas fa-play"></i></button>` : '';
             const rewatchBtn = item.status === 'Просмотрено'
                 ? `<button class="act-rewatch" title="+1 пересмотр"><i class="fas fa-rotate-right"></i></button>` : '';
+            const starBtn = `<button class="act-star" title="Важное"><i class="${item.important ? 'fas' : 'far'} fa-star"></i></button>`;
+            const cornerStar = item.important ? '<div class="corner-star"><i class="fas fa-star"></i></div>' : '';
+            const cornerOld = item.id === oldestId
+                ? '<div class="corner-old" title="Хранитель истории — самая старая запись"><i class="fas fa-landmark"></i></div>' : '';
+            const tintColor = ratingMeta(item.rating).color;
+            const genreTags = item.genres && item.genres.length
+                ? `<div class="genre-tags">${genreTagHtml(item.genres, 2)}</div>` : '';
             return `
                 <div class="gcard" data-id="${item.id}" data-action="open" ${dnd ? 'draggable="true"' : ''}>
-                    <div class="poster-wrap">
+                    <div class="poster-wrap" style="--tint:${tintColor}">
                         ${posterHtml(item, 'grid')}
+                        ${cornerStar}${cornerOld}
                         ${ratingRingHtml(item.rating)}
                         <div class="gcard-actions" data-actions>
                             ${quickBtn}
                             ${rewatchBtn}
+                            ${starBtn}
                             <button class="act-edit" title="Редактировать"><i class="fas fa-pen"></i></button>
                             <button class="act-delete" title="Удалить"><i class="fas fa-trash"></i></button>
                         </div>
@@ -312,7 +454,7 @@ function render() {
                             ${yearBadge}
                         </div>
                         ${progressHtml(item)}
-                        ${rewatch}${tmdbText}
+                        ${genreTags}${rewatch}${tmdbText}
                     </div>
                 </div>`;
         }).join('');
@@ -324,22 +466,29 @@ function render() {
             const tmdbText = item.tmdbRating ? `<span>TMDB ⭐ ${item.tmdbRating}</span>` : '';
             const rewatch = item.rewatches > 0 ? `<span>🔄 ×${item.rewatches}</span>` : '';
             const quickBtn = item.status === 'В процессе'
-                ? `<button class="act-finish" title="Посмотрел!"><i class="fas fa-check"></i></button>`
-                : item.status === 'Буду смотреть'
-                    ? `<button class="act-start" title="Начать смотреть"><i class="fas fa-play"></i></button>` : '';
+                ? `<button class="act-finish" title="Посмотрел!"><i class="fas fa-check"></i></button>
+                   <button class="act-pause" title="На паузу"><i class="fas fa-pause"></i></button>`
+                : item.status === 'На паузе'
+                    ? `<button class="act-start" title="Продолжить"><i class="fas fa-play"></i></button>
+                       <button class="act-finish" title="Посмотрел!"><i class="fas fa-check"></i></button>`
+                    : item.status === 'Буду смотреть'
+                        ? `<button class="act-start" title="Начать смотреть"><i class="fas fa-play"></i></button>` : '';
             const rewatchBtn = item.status === 'Просмотрено'
                 ? `<button class="act-rewatch" title="+1 пересмотр"><i class="fas fa-rotate-right"></i></button>` : '';
+            const starBtn = `<button class="act-star" title="Важное"><i class="${item.important ? 'fas' : 'far'} fa-star"></i></button>`;
+            const watchingProgress = (item.status === 'В процессе' || item.status === 'На паузе') &&
+                (item.type === 'Сериал' || item.type === 'Аниме')
+                ? `<span>${item.watchedEpisodes || 0}/${item.totalEpisodes || '?'} серий</span>` : '';
             return `
                 <div class="list-item" data-id="${item.id}" data-action="open" ${dnd ? 'draggable="true"' : ''}>
                     ${posterHtml(item, 'list')}
                     <div class="l-info">
-                        <div class="l-title">${esc(item.name)}</div>
+                        <div class="l-title">${item.important ? '<span class="l-important" title="Важное">⭐</span> ' : ''}${esc(item.name)}</div>
                         <div class="l-meta">
                             <span class="badge ${typeBadge}">${esc(item.type || '?')}</span>
                             <span class="badge ${statusBadge}">${esc(item.status || '?')}</span>
                             ${yearBadge}
-                            ${item.status === 'В процессе' && (item.type === 'Сериал' || item.type === 'Аниме')
-                                ? `<span>${item.watchedEpisodes || 0}/${item.totalEpisodes || '?'} серий</span>` : ''}
+                            ${watchingProgress}
                             ${rewatch}
                             ${tmdbText}
                         </div>
@@ -348,6 +497,7 @@ function render() {
                     <div class="l-actions">
                         ${quickBtn}
                         ${rewatchBtn}
+                        ${starBtn}
                         <button class="act-edit" title="Редактировать"><i class="fas fa-pen"></i></button>
                         <button class="act-delete" title="Удалить"><i class="fas fa-trash"></i></button>
                     </div>
@@ -405,7 +555,19 @@ $('#cards').addEventListener('click', function(e) {
         } else if (btn.classList.contains('act-start')) {
             e.stopPropagation();
             startWatching(id);
+        } else if (btn.classList.contains('act-pause')) {
+            e.stopPropagation();
+            pauseItem(id);
+        } else if (btn.classList.contains('act-star')) {
+            e.stopPropagation();
+            toggleImportant(id);
         }
+        return;
+    }
+    const rateEl = e.target.closest('.rating-ring') || e.target.closest('.l-rating');
+    if (rateEl) {
+        e.stopPropagation();
+        openRate(id);
         return;
     }
     openDetail(id);
@@ -418,11 +580,11 @@ function findItem(id) {
     return items.find(i => i.id == id);
 }
 
-function addItem(name, type, status, rating, rewatches, poster, watchedEpisodes, totalEpisodes, watchedAt) {
+function addItem(name, type, status, rating, rewatches, poster, watchedEpisodes, totalEpisodes, watchedAt, important, silent) {
     const exists = items.some(item =>
         item.name.toLowerCase() === name.toLowerCase() && item.type === type);
     if (exists) {
-        showToast('⚠️ Такой уже есть в списке!', true);
+        if (!silent) showToast('⚠️ Такой уже есть в списке!', true);
         return false;
     }
 
@@ -439,9 +601,13 @@ function addItem(name, type, status, rating, rewatches, poster, watchedEpisodes,
         watchedAt: watchedAt || (status === 'Просмотрено' ? todayISO() : ''),
         year: null,
         tmdbRating: null,
+        genres: [],
+        overview: '',
+        runtime: null,
+        important: !!important
     });
     saveData();
-    showToast('✅ Добавлено!');
+    if (!silent) showToast('✅ Добавлено!');
     return true;
 }
 
@@ -494,14 +660,113 @@ function startWatching(id) {
     showToast(`⏳ Начал смотреть «${item.name}»`);
 }
 
+function pauseItem(id) {
+    const item = findItem(id);
+    if (!item) return;
+    item.status = 'На паузе';
+    saveData();
+    showToast(`⏸️ «${item.name}» — на паузе`);
+}
+
+function toggleImportant(id) {
+    const item = findItem(id);
+    if (!item) return;
+    item.important = !item.important;
+    saveData();
+    showToast(item.important ? `⭐ «${item.name}» — в важном!` : `«${item.name}» больше не важное`);
+}
+
 function confirmDelete(id) {
     const item = findItem(id);
     if (!item) return;
     showConfirm(`Удалить «${item.name}»?`, () => {
         items = items.filter(i => i.id != id);
+        trash.push({ item: item, deletedAt: Date.now() });
+        saveTrash();
         saveData();
-        showToast('🗑️ Удалено');
+        showToast('🗑️ Удалено. Восстановить можно из корзины');
     });
+}
+
+// ========================
+//  КОРЗИНА
+// ========================
+function saveTrash() {
+    try {
+        localStorage.setItem(TRASH_KEY, JSON.stringify(trash));
+    } catch (e) { /* ignore */ }
+}
+
+function purgeTrash() {
+    const cutoff = Date.now() - TRASH_TTL;
+    const before = trash.length;
+    trash = trash.filter(t => t.deletedAt > cutoff);
+    if (trash.length !== before) saveTrash();
+}
+
+function restoreItem(id) {
+    const idx = trash.findIndex(t => t.item.id == id);
+    if (idx === -1) return;
+    const [t] = trash.splice(idx, 1);
+    items.push(t.item);
+    saveTrash();
+    saveData();
+    renderTrash();
+    showToast('♻️ Восстановлено!');
+}
+
+function purgeItem(id) {
+    trash = trash.filter(t => t.item.id != id);
+    saveTrash();
+    renderTrash();
+    showToast('🗑️ Удалено навсегда');
+}
+
+function emptyTrash() {
+    if (!trash.length) return;
+    showConfirm(`Очистить корзину (${trash.length} шт.)?`, () => {
+        trash = [];
+        saveTrash();
+        renderTrash();
+        showToast('🗑️ Корзина пуста');
+    });
+}
+
+function renderTrash() {
+    $('#trashCount').textContent = trash.length ? `(${trash.length})` : '';
+    $('#menuTrashCount').textContent = trash.length ? trash.length : '';
+    const el = $('#trashList');
+    if (!trash.length) {
+        el.innerHTML = '<div class="trash-empty">Корзина пуста</div>';
+    } else {
+        el.innerHTML = trash.map(t => `
+            <div class="trash-item" data-trash-id="${t.item.id}">
+                ${t.item.poster
+                    ? `<img class="trash-thumb" src="${esc(t.item.poster)}" alt="" loading="lazy" onerror="this.style.display='none'">`
+                    : '<div class="trash-thumb" style="background:var(--border);"></div>'}
+                <div class="trash-info">
+                    <div class="trash-name">${esc(t.item.name)}</div>
+                    <div class="trash-date">удалено ${new Date(t.deletedAt).toLocaleDateString('ru-RU')}</div>
+                </div>
+                <button class="t-restore" data-trash-act="restore" title="Восстановить">♻️</button>
+                <button class="t-purge" data-trash-act="purge" title="Удалить навсегда">🗑️</button>
+            </div>`).join('');
+    }
+    $('#trashModal').classList.add('show');
+}
+
+$('#trashList').addEventListener('click', function(e) {
+    const btn = e.target.closest('[data-trash-act]');
+    const row = e.target.closest('[data-trash-id]');
+    if (!btn || !row) return;
+    if (btn.dataset.trashAct === 'restore') restoreItem(row.dataset.trashId);
+    else purgeItem(row.dataset.trashId);
+});
+
+$('#trashClear').addEventListener('click', emptyTrash);
+
+function closeTrash() {
+    $('#trashModal').classList.remove('show');
 }
 
 // ========================
@@ -519,6 +784,7 @@ function openAddModal() {
     $('#editWatchedEpisodes').value = '';
     $('#editTotalEpisodes').value = '';
     $('#editWatchedAt').value = '';
+    $('#editImportant').checked = false;
     $('#editModal').classList.add('show');
     toggleEditFields();
     setTimeout(() => $('#editName').focus(), 80);
@@ -538,6 +804,7 @@ function openEdit(id) {
     $('#editWatchedEpisodes').value = item.watchedEpisodes || '';
     $('#editTotalEpisodes').value = item.totalEpisodes || '';
     $('#editWatchedAt').value = item.watchedAt || '';
+    $('#editImportant').checked = !!item.important;
     $('#editModal').classList.add('show');
     toggleEditFields();
 }
@@ -553,7 +820,7 @@ function toggleEditFields() {
     const dateWrap = $('#editDateWrap');
     const ratingInput = $('#editRating');
 
-    if (status === 'В процессе') {
+    if (status === 'В процессе' || status === 'На паузе') {
         wrap.style.display = 'block';
         dateWrap.style.display = 'none';
         ratingInput.disabled = true;
@@ -578,11 +845,13 @@ function saveModal() {
 
     const type = $('#editType').value;
     const status = $('#editStatus').value;
-    const rating = status === 'В процессе' || status === 'Буду смотреть' ? 0 : (parseInt($('#editRating').value) || 0);
+    const rating = status === 'В процессе' || status === 'На паузе' || status === 'Буду смотреть'
+        ? 0 : (parseInt($('#editRating').value) || 0);
     const rewatches = parseInt($('#editRewatches').value) || 0;
     const poster = $('#editPoster').value.trim();
     const watchedEpisodes = parseInt($('#editWatchedEpisodes').value) || 0;
     const totalEpisodes = parseInt($('#editTotalEpisodes').value) || 0;
+    const important = $('#editImportant').checked;
 
     if (editId) {
         const item = findItem(editId);
@@ -595,6 +864,7 @@ function saveModal() {
         item.poster = poster;
         item.watchedEpisodes = watchedEpisodes;
         item.totalEpisodes = totalEpisodes;
+        item.important = important;
         if (status === 'Просмотрено') {
             item.watchedAt = $('#editWatchedAt').value || item.watchedAt || todayISO();
         } else if (!item.watchedAt) {
@@ -606,7 +876,7 @@ function saveModal() {
     } else {
         const watchedAt = status === 'Просмотрено'
             ? ($('#editWatchedAt').value || todayISO()) : '';
-        if (addItem(name, type, status, rating, rewatches, poster, watchedEpisodes, totalEpisodes, watchedAt)) {
+        if (addItem(name, type, status, rating, rewatches, poster, watchedEpisodes, totalEpisodes, watchedAt, important)) {
             closeModal();
         }
     }
@@ -649,7 +919,7 @@ async function searchTMDB() {
 
             return `
                 <div class="search-result-item" data-result-name="${esc(title)}" data-result-type="${mediaType}"
-                     data-result-rating="${rating}" data-result-poster="${esc(poster)}">
+                     data-result-rating="${rating}" data-result-poster="${esc(poster)}" data-result-year="${year}">
                     ${poster ? posterTag(poster, title, 'search') :
                         '<div class="sr-fallback"><i class="fas fa-film"></i></div>'}
                     <div class="info">
@@ -674,7 +944,7 @@ $('#searchResults').addEventListener('click', function(e) {
     if (e.target.closest('.add-btn')) return;
     const row = e.target.closest('[data-result-name]');
     if (!row) return;
-    const { resultName: name, resultType: type, resultRating: rating, resultPoster: poster } = row.dataset;
+    const { resultName: name, resultType: type, resultRating: rating, resultPoster: poster, resultYear: year } = row.dataset;
     const exists = items.some(i =>
         i.name.toLowerCase() === name.toLowerCase() && i.type === type);
     if (exists) {
@@ -683,6 +953,9 @@ $('#searchResults').addEventListener('click', function(e) {
     }
     const added = addItem(name, type, 'Просмотрено', parseFloat(rating) || 0, 0, poster, 0, 0);
     if (added) {
+        const item = items[items.length - 1];
+        if (year && !isNaN(parseInt(year, 10))) item.year = parseInt(year, 10);
+        saveData();
         $('#searchResults').classList.remove('show');
         $('#searchInput').value = '';
     }
@@ -694,6 +967,7 @@ $('#searchResults').addEventListener('click', function(e) {
 function openDetail(id) {
     const item = findItem(id);
     if (!item) return;
+    detailId = id;
 
     const modal = $('#detailModal');
     const heroImg = $('#detailPoster');
@@ -714,7 +988,9 @@ function openDetail(id) {
     $('#detailTitle').textContent = item.name;
     $('#detailYear').textContent = '—';
     $('#detailYear2').textContent = '—';
-    $('#detailGenres').innerHTML = '';
+    $('#detailGenres').innerHTML = item.genres && item.genres.length
+        ? item.genres.map(g => `<span class="genre-chip" style="color:${genreColor(g)};border-color:${genreColor(g)}44;">${esc(g)}</span>`).join('')
+        : '';
     $('#detailOverview').textContent = '⏳ Загрузка описания...';
     $('#detailSimilar').innerHTML = '<div style="color:#666;padding:8px;">Загрузка похожих...</div>';
     $('#detailStatus').textContent = `${STATUS_ICONS[item.status] || ''} ${item.status}`;
@@ -726,6 +1002,11 @@ function openDetail(id) {
     $('#detailType').textContent = item.type;
     $('#detailWatched').textContent = item.watchedAt
         ? `📅 Просмотрено: ${formatDate(item.watchedAt)}` : '';
+    $('#detailRuntime').textContent = item.runtime
+        ? `⏱️ ${Math.floor(item.runtime / 60)} ч ${item.runtime % 60} мин` : '';
+    $('#detailImportantBtn').innerHTML = item.important
+        ? '<i class="fas fa-star"></i> В избранном'
+        : '<i class="far fa-star"></i> В избранное';
     $('#detailModal').classList.add('show');
 
     fetchTMDBDetail(item.name).then(detail => {
@@ -741,16 +1022,25 @@ function openDetail(id) {
         if (detail.rating) {
             $('#detailTmdbr').textContent = detail.rating;
         }
+        if (detail.runtime) {
+            $('#detailRuntime').textContent = `⏱️ ${Math.floor(detail.runtime / 60)} ч ${detail.runtime % 60} мин`;
+        }
 
         let changed = false;
         if (item.year === null && detail.year) { item.year = detail.year; changed = true; }
         if (item.tmdbRating === null && detail.rating) { item.tmdbRating = detail.rating; changed = true; }
+        if ((!item.genres || !item.genres.length) && detail.genres && detail.genres.length) {
+            item.genres = detail.genres.map(g => g.name).filter(Boolean);
+            changed = true;
+        }
+        if (!item.overview && detail.overview) { item.overview = detail.overview; changed = true; }
+        if (item.runtime === null && detail.runtime) { item.runtime = detail.runtime; changed = true; }
         if (changed) saveData();
 
         if (detail.genres && detail.genres.length) {
             $('#detailGenres').innerHTML = detail.genres
-                .map(g => `<span class="genre-chip">${esc(g.name)}</span>`).join('');
-        } else {
+                .map(g => `<span class="genre-chip" style="color:${genreColor(g.name)};border-color:${genreColor(g.name)}44;">${esc(g.name)}</span>`).join('');
+        } else if (!item.genres || !item.genres.length) {
             $('#detailGenres').innerHTML = '<span class="genre-chip" style="opacity:0.5;">Жанры не найдены</span>';
         }
 
@@ -774,6 +1064,16 @@ function openDetail(id) {
     });
 }
 
+function toggleDetailImportant() {
+    if (!detailId) return;
+    toggleImportant(detailId);
+    const item = findItem(detailId);
+    if (!item) return;
+    $('#detailImportantBtn').innerHTML = item.important
+        ? '<i class="fas fa-star"></i> В избранном'
+        : '<i class="far fa-star"></i> В избранное';
+}
+
 async function fetchTMDBDetail(name) {
     const resp = await tmdbFetch(`/search/multi?query=${encodeURIComponent(name)}&language=ru-RU`);
     if (!resp.ok) throw new Error('TMDB error');
@@ -789,6 +1089,7 @@ async function fetchTMDBDetail(name) {
         year,
         rating: first.vote_average ? Math.round(first.vote_average * 10) / 10 : null,
         genres: first.genre_ids || [],
+        runtime: first.runtime || null,
         similar: []
     };
 
@@ -796,6 +1097,18 @@ async function fetchTMDBDetail(name) {
         try {
             const genreMap = await fetchGenreMap();
             detail.genres = detail.genres.map(id => ({ name: genreMap[id] || 'Жанр' }));
+        } catch (e) { /* ignore */ }
+    }
+
+    if (!detail.runtime) {
+        try {
+            const dResp = await tmdbFetch(`/${mediaType}/${first.id}?language=ru-RU`);
+            if (dResp.ok) {
+                const d = await dResp.json();
+                detail.runtime = mediaType === 'movie'
+                    ? (d.runtime || null)
+                    : ((d.episode_run_time && d.episode_run_time[0]) || null);
+            }
         } catch (e) { /* ignore */ }
     }
 
@@ -842,6 +1155,9 @@ $('#detailSimilar').addEventListener('click', async function(e) {
             const rating = first.vote_average ? Math.round(first.vote_average * 10) / 10 : 0;
             if (addItem(title, type, 'Буду смотреть', rating, 0, poster, 0, 0)) {
                 const newItem = items[items.length - 1];
+                const y = parseInt((first.release_date || first.first_air_date || '').slice(0, 4), 10);
+                if (!isNaN(y)) newItem.year = y;
+                if (first.runtime) newItem.runtime = first.runtime;
                 openDetail(newItem.id);
             }
         } else {
@@ -857,29 +1173,206 @@ function closeDetail() {
 }
 
 // ========================
+//  БЫСТРАЯ ОЦЕНКА
+// ========================
+function openRate(id) {
+    rateId = id;
+    const item = findItem(id);
+    if (!item) return;
+    $('#rateTitle').textContent = `«${item.name}»`;
+    const cur = item.rating || 0;
+    $$('#rateGrid .rate-btn').forEach(b => {
+        b.classList.toggle('active', parseInt(b.dataset.rate, 10) === cur);
+    });
+    $('#rateModal').classList.add('show');
+}
+
+function setRate(val) {
+    const item = findItem(rateId);
+    if (!item) return;
+    item.rating = val;
+    saveData();
+    closeRate();
+    if (val) showToast(`⭐ «${item.name}» — ${val}/10`);
+    else showToast('⭐ Оценка сброшена');
+}
+
+function closeRate() {
+    $('#rateModal').classList.remove('show');
+    rateId = null;
+}
+
+$('#rateGrid').addEventListener('click', function(e) {
+    const btn = e.target.closest('.rate-btn');
+    if (!btn) return;
+    setRate(parseInt(btn.dataset.rate, 10) || 0);
+});
+
+// ========================
 //  ЭКСПОРТ / ИМПОРТ
 // ========================
+function parseCSV(text) {
+    const rows = [];
+    text.split(/\r?\n/).forEach(line => {
+        if (!line.trim()) return;
+        const cols = [];
+        let cur = '';
+        let inQ = false;
+        for (let i = 0; i < line.length; i++) {
+            const ch = line[i];
+            if (inQ) {
+                if (ch === '"') {
+                    if (line[i + 1] === '"') { cur += '"'; i++; } else inQ = false;
+                } else cur += ch;
+            } else if (ch === '"') inQ = true;
+            else if (ch === ';') { cols.push(cur); cur = ''; }
+            else cur += ch;
+        }
+        cols.push(cur);
+        rows.push(cols);
+    });
+    return rows;
+}
+
+function importCSV(text) {
+    const rows = parseCSV(text);
+    if (rows.length < 2) return 0;
+    const header = rows[0].map(h => h.trim().toLowerCase().replace(/ё/g, 'е'));
+    const idx = {
+        name: header.indexOf('название'),
+        type: header.indexOf('тип'),
+        status: header.indexOf('статус'),
+        rating: header.indexOf('моя оценка'),
+        rewatches: header.indexOf('пересмотры'),
+        year: header.indexOf('год'),
+        watchedAt: header.indexOf('дата просмотра'),
+        poster: header.indexOf('постер')
+    };
+    let count = 0;
+    rows.slice(1).forEach(r => {
+        const name = idx.name !== -1 ? r[idx.name] : r[0];
+        if (!name || !name.trim()) return;
+        const type = idx.type !== -1 ? (r[idx.type] || 'Фильм') : 'Фильм';
+        const status = idx.status !== -1 ? (r[idx.status] || 'Просмотрено') : 'Просмотрено';
+        const rating = idx.rating !== -1 ? parseInt(r[idx.rating]) || 0 : 0;
+        const rewatches = idx.rewatches !== -1 ? parseInt(r[idx.rewatches]) || 0 : 0;
+        const watchedAt = idx.watchedAt !== -1 ? r[idx.watchedAt] : '';
+        const poster = idx.poster !== -1 ? r[idx.poster] : '';
+        if (addItem(name, type, status, rating, rewatches, poster, 0, 0, watchedAt, false, true)) {
+            const item = items[items.length - 1];
+            if (idx.year !== -1 && r[idx.year]) {
+                const y = parseInt(r[idx.year], 10);
+                if (!isNaN(y)) item.year = y;
+            }
+            count++;
+        }
+    });
+    saveData();
+    return count;
+}
+
 function importData(event) {
     const file = event.target.files[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onload = function(e) {
-        try {
-            const data = JSON.parse(e.target.result);
-            if (Array.isArray(data) && data.length) {
-                items = data.map(normalize);
-                saveData();
-                showToast('✅ Импорт успешен!');
-            } else {
-                showToast('❌ Неверный формат', true);
+        const ext = (file.name.split('.').pop() || '').toLowerCase();
+        if (ext === 'csv') {
+            const n = importCSV(e.target.result);
+            showToast(n ? `✅ Импортировано записей: ${n}` : '❌ Не удалось прочитать CSV', !n);
+        } else {
+            try {
+                const data = JSON.parse(e.target.result);
+                if (Array.isArray(data) && data.length) {
+                    items = data.map(normalize);
+                    saveData();
+                    showToast('✅ Импорт успешен!');
+                } else {
+                    showToast('❌ Неверный формат', true);
+                }
+            } catch (err) {
+                showToast('❌ Ошибка чтения файла', true);
             }
-        } catch (err) {
-            showToast('❌ Ошибка чтения файла', true);
         }
     };
     reader.readAsText(file);
     event.target.value = '';
 }
+
+// ========================
+//  ДУБЛИКАТЫ
+// ========================
+function findDuplicates() {
+    const map = {};
+    items.forEach(i => {
+        const k = i.type + '|' + i.name.trim().toLowerCase();
+        (map[k] = map[k] || []).push(i);
+    });
+    return Object.values(map).filter(g => g.length > 1);
+}
+
+function openDuplicates() {
+    const groups = findDuplicates();
+    const el = $('#dupList');
+    if (!groups.length) {
+        el.innerHTML = '<div class="trash-empty">🎉 Дубликатов нет!</div>';
+    } else {
+        el.innerHTML = groups.map(g => `
+            <div class="dup-group">
+                <div class="dup-title">«${esc(g[0].name)}» — ${g.length} шт.</div>
+                ${g.map((item, ii) => `
+                    <div class="dup-row">
+                        <span class="dup-name">${esc(item.name)}</span>
+                        ${ii === 0
+                            ? '<span class="dup-keep">✅ оставляем</span>'
+                            : `<button class="dup-del" data-dup-id="${item.id}">🗑️ удалить</button>`}
+                    </div>`).join('')}
+            </div>`).join('');
+    }
+    $('#duplicatesModal').classList.add('show');
+}
+
+$('#dupList').addEventListener('click', function(e) {
+    const btn = e.target.closest('.dup-del');
+    if (!btn) return;
+    const item = findItem(btn.dataset.dupId);
+    if (!item) return;
+    items = items.filter(i => i.id != item.id);
+    trash.push({ item: item, deletedAt: Date.now() });
+    saveTrash();
+    saveData();
+    openDuplicates();
+    showToast('🗑️ Дубль удалён');
+});
+
+function closeDuplicates() {
+    $('#duplicatesModal').classList.remove('show');
+}
+
+// ========================
+//  МЕНЮ ШАПКИ
+// ========================
+$('#menuBtn').addEventListener('click', function(e) {
+    e.stopPropagation();
+    $('#mainMenu').classList.toggle('show');
+});
+
+$('#mainMenu').addEventListener('click', function(e) {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    $('#mainMenu').classList.remove('show');
+    const act = btn.dataset.action;
+    if (act === 'achievements') renderAchievements();
+    else if (act === 'analytics') renderAnalytics();
+    else if (act === 'trash') renderTrash();
+    else if (act === 'duplicates') openDuplicates();
+    else if (act === 'export-json') exportJSON();
+    else if (act === 'export-md') exportMarkdown();
+    else if (act === 'export-csv') exportCSV();
+    else if (act === 'import') $('#importInput').click();
+});
+
+$('#importInput').addEventListener('change', importData);
 
 // ========================
 //  КАСТОМНЫЙ CONFIRM
@@ -918,30 +1411,33 @@ function showToast(message, isError = false) {
 // ========================
 //  ФИЛЬТРЫ / СОРТИРОВКА / ВИД
 // ========================
+function syncChips() {
+    $$('#typeFilters .chip').forEach(b => b.classList.toggle('active', b.dataset.filter === typeFilter));
+    $$('#statusFilters .chip').forEach(b => b.classList.toggle('active', b.dataset.status === statusFilter));
+    $$('#decadeFilters .chip').forEach(b => b.classList.toggle('active', b.dataset.decade === decadeFilter));
+}
+
 $('#typeFilters').addEventListener('click', function(e) {
     const btn = e.target.closest('.chip');
     if (!btn) return;
-    $$('#typeFilters .chip').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
     typeFilter = btn.dataset.filter;
+    syncChips();
     render();
 });
 
 $('#statusFilters').addEventListener('click', function(e) {
     const btn = e.target.closest('.chip');
     if (!btn) return;
-    $$('#statusFilters .chip').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
     statusFilter = btn.dataset.status;
+    syncChips();
     render();
 });
 
 $('#decadeFilters').addEventListener('click', function(e) {
     const btn = e.target.closest('.chip');
     if (!btn) return;
-    $$('#decadeFilters .chip').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
     decadeFilter = btn.dataset.decade;
+    syncChips();
     render();
 });
 
@@ -962,6 +1458,109 @@ function setView(mode) {
 
 $('#viewGrid').addEventListener('click', () => setView('grid'));
 $('#viewList').addEventListener('click', () => setView('list'));
+
+function setCardSize(s) {
+    cardSize = s;
+    try {
+        localStorage.setItem(SIZE_KEY, s);
+    } catch (e) { /* ignore */ }
+    render();
+}
+
+$('#sizeS').addEventListener('click', () => setCardSize('s'));
+$('#sizeM').addEventListener('click', () => setCardSize('m'));
+$('#sizeL').addEventListener('click', () => setCardSize('l'));
+
+// ========================
+//  ПАПКИ (сохранённые фильтры)
+// ========================
+function renderFolders() {
+    const row = $('#folderFilters');
+    if (!folders.length) {
+        row.style.display = 'none';
+        row.innerHTML = '';
+        return;
+    }
+    row.style.display = 'flex';
+    row.innerHTML = folders.map((f, i) => `
+        <button class="chip folder-chip" data-folder="${i}">
+            <i class="far fa-folder"></i> ${esc(f.name)} <span class="folder-x" data-folder-del="${i}">✕</span>
+        </button>`).join('');
+}
+
+$('#folderFilters').addEventListener('click', function(e) {
+    const del = e.target.closest('[data-folder-del]');
+    if (del) {
+        e.stopPropagation();
+        folders.splice(parseInt(del.dataset.folderDel, 10), 1);
+        try { localStorage.setItem(FOLDERS_KEY, JSON.stringify(folders)); } catch (err) { /* ignore */ }
+        renderFolders();
+        return;
+    }
+    const chip = e.target.closest('[data-folder]');
+    if (!chip) return;
+    const f = folders[parseInt(chip.dataset.folder, 10)];
+    if (!f) return;
+    typeFilter = f.type || 'all';
+    statusFilter = f.status || 'all';
+    decadeFilter = f.decade || 'all';
+    sortMode = f.sort || 'rating-desc';
+    $('#searchInput').value = f.query || '';
+    $('#sortSelect').value = sortMode;
+    $('#searchMode').value = f.searchMode || 'name';
+    syncChips();
+    render();
+    showToast(`📁 Папка «${f.name}»`);
+});
+
+function saveFolder() {
+    const name = $('#promptInput').value.trim();
+    if (!name) {
+        showToast('Введите название папки', true);
+        return;
+    }
+    folders.push({
+        name,
+        type: typeFilter,
+        status: statusFilter,
+        decade: decadeFilter,
+        query: ($('#searchInput').value || '').trim(),
+        sort: sortMode,
+        searchMode: $('#searchMode').value
+    });
+    try { localStorage.setItem(FOLDERS_KEY, JSON.stringify(folders)); } catch (err) { /* ignore */ }
+    closePrompt();
+    renderFolders();
+    showToast('📁 Папка сохранена!');
+}
+
+$('#saveFilterBtn').addEventListener('click', () => {
+    openPrompt('📁 Имя для папки', 'Например: Хочу пересмотреть', '', saveFolder);
+});
+
+// ========================
+//  ПРОМПТ
+// ========================
+function openPrompt(title, placeholder, initial, cb) {
+    $('#promptTitle').textContent = title;
+    $('#promptInput').placeholder = placeholder || '';
+    $('#promptInput').value = initial || '';
+    promptCallback = cb;
+    $('#promptModal').classList.add('show');
+    setTimeout(() => $('#promptInput').focus(), 80);
+}
+
+function closePrompt() {
+    $('#promptModal').classList.remove('show');
+    promptCallback = null;
+}
+
+$('#promptOk').addEventListener('click', () => {
+    const cb = promptCallback;
+    if (cb) cb();
+});
+$('#promptCancel').addEventListener('click', closePrompt);
+$('#promptClose').addEventListener('click', closePrompt);
 
 // ========================
 //  ПОИСК (локальный + TMDB)
@@ -988,6 +1587,12 @@ $('#searchBtn').addEventListener('click', searchTMDB);
 // ========================
 function closeTopModal() {
     if ($('#detailModal').classList.contains('show')) closeDetail();
+    else if ($('#rateModal').classList.contains('show')) closeRate();
+    else if ($('#trashModal').classList.contains('show')) closeTrash();
+    else if ($('#analyticsModal').classList.contains('show')) closeAnalytics();
+    else if ($('#achievementsModal').classList.contains('show')) closeAchievements();
+    else if ($('#duplicatesModal').classList.contains('show')) closeDuplicates();
+    else if ($('#promptModal').classList.contains('show')) closePrompt();
     else if ($('#confirmModal').classList.contains('show')) closeConfirm();
     else if ($('#editModal').classList.contains('show')) closeModal();
 }
@@ -996,13 +1601,20 @@ document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') closeTopModal();
 });
 
-['editModal', 'detailModal', 'confirmModal'].forEach(id => {
+const CLOSE_FNS = {
+    editModal: closeModal,
+    detailModal: closeDetail,
+    confirmModal: closeConfirm,
+    rateModal: closeRate,
+    trashModal: closeTrash,
+    analyticsModal: closeAnalytics,
+    achievementsModal: closeAchievements,
+    duplicatesModal: closeDuplicates,
+    promptModal: closePrompt
+};
+Object.keys(CLOSE_FNS).forEach(id => {
     document.getElementById(id).addEventListener('click', function(e) {
-        if (e.target === this) {
-            if (id === 'editModal') closeModal();
-            else if (id === 'detailModal') closeDetail();
-            else closeConfirm();
-        }
+        if (e.target === this) CLOSE_FNS[id]();
     });
 });
 
@@ -1097,25 +1709,16 @@ function exportCSV() {
     showToast('📊 CSV скачан!');
 }
 
-$('#exportBtn').addEventListener('click', function(e) {
+$('#menuBtn').addEventListener('click', function(e) {
     e.stopPropagation();
-    $('#exportMenu').classList.toggle('show');
+    $$('.export-menu').forEach(m => m.classList.remove('show'));
+    $('#mainMenu').classList.toggle('show');
 });
 
 document.addEventListener('click', function(e) {
     if (!e.target.closest('.export-wrap')) {
-        $('#exportMenu').classList.remove('show');
+        $$('.export-menu').forEach(m => m.classList.remove('show'));
     }
-});
-
-$('#exportMenu').addEventListener('click', function(e) {
-    const btn = e.target.closest('[data-format]');
-    if (!btn) return;
-    const format = btn.dataset.format;
-    if (format === 'json') exportJSON();
-    else if (format === 'markdown') exportMarkdown();
-    else if (format === 'csv') exportCSV();
-    $('#exportMenu').classList.remove('show');
 });
 
 // ========================
@@ -1166,7 +1769,240 @@ $('#cards').addEventListener('dragend', function() {
 });
 
 // ========================
-//  ФОНОВАЯ ДОЗАГРУЗКА TMDB (год + рейтинг)
+//  АНАЛИТИКА
+// ========================
+const WEEK_LABELS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+const MONTH_LABELS = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+
+function weekDayOf(ts) {
+    return (new Date(ts).getDay() + 6) % 7;
+}
+
+function computeAnalytics() {
+    const res = {
+        hours: 0,
+        hoursKnown: 0,
+        avgRewatches: 0,
+        months: {},
+        week: [0, 0, 0, 0, 0, 0, 0],
+        topGenres: {},
+        decades: {},
+        monthCounts: {},
+        streak: 0
+    };
+    const daySet = {};
+    items.forEach(i => {
+        if (i.id) {
+            const d = new Date(i.id);
+            if (!isNaN(d)) {
+                const mk = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                res.week[weekDayOf(i.id)]++;
+                res.monthCounts[mk] = (res.monthCounts[mk] || 0) + 1;
+                daySet[mk + '-' + d.getDate()] = 1;
+            }
+        }
+        if (i.rating > 0 && i.watchedAt) {
+            const mk = i.watchedAt.slice(0, 7);
+            if (!res.months[mk]) res.months[mk] = { sum: 0, n: 0 };
+            res.months[mk].sum += i.rating;
+            res.months[mk].n++;
+        }
+        if (i.year) {
+            const dec = Math.floor(i.year / 10) * 10;
+            res.decades[dec] = (res.decades[dec] || 0) + 1;
+        }
+        (i.genres || []).forEach(g => { res.topGenres[g] = (res.topGenres[g] || 0) + 1; });
+        res.avgRewatches += i.rewatches || 0;
+        if (i.runtime && i.status === 'Просмотрено') {
+            res.hours += i.runtime * (1 + (i.rewatches || 0));
+        }
+        if (i.runtime) res.hoursKnown++;
+    });
+    res.hours = Math.round(res.hours / 60);
+    res.avgRewatches = items.length ? (res.avgRewatches / items.length).toFixed(1) : '0';
+
+    const today = new Date();
+    for (let k = 0; k < 1000; k++) {
+        const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - k);
+        const mk = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        if (daySet[mk + '-' + d.getDate()]) res.streak++;
+        else if (k > 0) break;
+    }
+    return res;
+}
+
+function renderAnalytics() {
+    const a = computeAnalytics();
+
+    let bestMonth = null;
+    let bestCount = 0;
+    Object.keys(a.monthCounts).forEach(mk => {
+        if (a.monthCounts[mk] > bestCount) { bestCount = a.monthCounts[mk]; bestMonth = mk; }
+    });
+    const bestMonthLabel = bestMonth
+        ? `${MONTH_LABELS[parseInt(bestMonth.slice(5), 10) - 1]} ${bestMonth.slice(0, 4)}` : '—';
+    const hoursNote = !a.hours && items.length
+        ? '<div class="an-none">Хронометраж подтянется после открытия деталей фильмов</div>' : '';
+
+    const statsHtml = `
+        <div class="an-stats">
+            <div class="an-stat-card"><div class="v">${a.hours} ч</div><div class="k">часов просмотрено</div></div>
+            <div class="an-stat-card"><div class="v">${a.avgRewatches}</div><div class="k">среднее пересмотров</div></div>
+            <div class="an-stat-card"><div class="v sm">${bestMonthLabel}</div><div class="k">активный месяц · ${bestCount} шт</div></div>
+            <div class="an-stat-card"><div class="v">${a.streak}🔥</div><div class="k">дней подряд</div></div>
+        </div>${hoursNote}`;
+
+    const months = Object.keys(a.months).sort();
+    const monthsHtml = months.length ? months.map(mk => {
+        const m = a.months[mk];
+        const avg = Math.round((m.sum / m.n) * 10) / 10;
+        const label = MONTH_LABELS[parseInt(mk.slice(5), 10) - 1] + '.' + mk.slice(2, 4);
+        return `<div class="an-bar-row"><span class="lb">${label}</span><div class="an-bar-track"><div class="an-bar-fill" style="width:${avg * 10}%"></div></div><span class="vl">${avg}</span></div>`;
+    }).join('') : '<div class="an-none">Нет просмотренных с оценками</div>';
+
+    const genres = Object.entries(a.topGenres).sort((x, y) => y[1] - x[1]).slice(0, 8);
+    const maxG = genres.length ? genres[0][1] : 1;
+    const genresHtml = genres.length ? genres.map(([g, c]) => `
+        <div class="an-bar-row"><span class="lb" title="${esc(g)}">${esc(g)}</span><div class="an-bar-track"><div class="an-bar-fill" style="width:${Math.round(c / maxG * 100)}%"></div></div><span class="vl">${c}</span></div>`).join('')
+        : '<div class="an-none">Открой детали фильмов — жанры подтянутся из TMDB</div>';
+
+    const decades = Object.keys(a.decades).map(Number).sort((x, y) => x - y);
+    const maxD = decades.length ? Math.max(...decades.map(d => a.decades[d])) : 1;
+    const decadesHtml = decades.length ? decades.map(d => `
+        <div class="an-bar-row"><span class="lb">${d}-е</span><div class="an-bar-track"><div class="an-bar-fill" style="width:${Math.round(a.decades[d] / maxD * 100)}%"></div></div><span class="vl">${a.decades[d]}</span></div>`).join('')
+        : '<div class="an-none">Нет данных о годах выпуска</div>';
+
+    const maxW = Math.max(...a.week, 1);
+    const weekHtml = a.week.map((c, i) => `
+        <div class="an-week-col"><div class="an-week-bar" style="height:${Math.round(c / maxW * 100)}%"></div><span class="an-week-lbl">${WEEK_LABELS[i]}</span></div>`).join('');
+
+    $('#analyticsBody').innerHTML = `
+        <div class="an-block"><h4>Сводка</h4>${statsHtml}</div>
+        <div class="an-block"><h4>Средняя оценка по месяцам</h4>${monthsHtml}</div>
+        <div class="an-block"><h4>Топ жанров</h4>${genresHtml}</div>
+        <div class="an-block"><h4>Фильмы по десятилетиям</h4>${decadesHtml}</div>
+        <div class="an-block"><h4>Дни недели (добавления)</h4><div class="an-week">${weekHtml}</div></div>`;
+    $('#analyticsModal').classList.add('show');
+}
+
+function closeAnalytics() {
+    $('#analyticsModal').classList.remove('show');
+}
+
+// ========================
+//  ДОСТИЖЕНИЯ И УРОВНИ
+// ========================
+function getLevel(n) {
+    if (n >= 200) return { name: 'Легенда кино', next: null };
+    if (n >= 100) return { name: 'Эксперт', next: 200 };
+    if (n >= 50) return { name: 'Знаток', next: 100 };
+    if (n >= 20) return { name: 'Киноман', next: 50 };
+    if (n >= 5) return { name: 'Зритель', next: 20 };
+    return { name: 'Новичок', next: 5 };
+}
+
+function checkAchievements() {
+    const total = items.length;
+    const watched = items.filter(i => i.status === 'Просмотрено').length;
+    const rewatches = items.reduce((s, i) => s + (i.rewatches || 0), 0);
+    const rated9 = items.filter(i => i.rating >= 9).length;
+    const genres = new Set(items.flatMap(i => i.genres || []));
+    const anime = items.filter(i => i.type === 'Аниме').length;
+    const serials = items.filter(i => i.type === 'Сериал').length;
+    const a = computeAnalytics();
+    const list = [
+        { icon: '🎬', name: 'Первые шаги', desc: 'добавь первый фильм', cur: Math.min(total, 1), need: 1, done: total >= 1 },
+        { icon: '📺', name: 'Сериаломан', desc: '10 сериалов в коллекции', cur: Math.min(serials, 10), need: 10, done: serials >= 10 },
+        { icon: '🎌', name: 'Аниме-фанат', desc: '10 аниме в коллекции', cur: Math.min(anime, 10), need: 10, done: anime >= 10 },
+        { icon: '🍿', name: 'Киномарафон', desc: '50 просмотренных', cur: Math.min(watched, 50), need: 50, done: watched >= 50 },
+        { icon: '🔄', name: 'Мастер пересмотров', desc: '10 пересмотров', cur: Math.min(rewatches, 10), need: 10, done: rewatches >= 10 },
+        { icon: '⭐', name: 'Строгий критик', desc: '10 оценок 9–10', cur: Math.min(rated9, 10), need: 10, done: rated9 >= 10 },
+        { icon: '🎭', name: 'Разносторонний', desc: '5 разных жанров', cur: Math.min(genres.size, 5), need: 5, done: genres.size >= 5 },
+        { icon: '🔥', name: 'Серия недели', desc: '7 дней подряд с добавлениями', cur: Math.min(a.streak, 7), need: 7, done: a.streak >= 7 },
+        { icon: '🏛️', name: 'Хранитель истории', desc: 'самая старая запись в коллекции', cur: items.length ? 1 : 0, need: 1, done: items.length > 0 },
+        { icon: '🏆', name: 'Легенда', desc: '100 фильмов в коллекции', cur: Math.min(total, 100), need: 100, done: total >= 100 }
+    ];
+    return { level: getLevel(total), list };
+}
+
+function renderAchievements() {
+    const { level, list } = checkAchievements();
+    const doneCount = list.filter(a => a.done).length;
+    $('#achLevelName').textContent = level.name;
+    $('#achLevelSub').textContent = `Уровень «${level.name}» · ${items.length} записей · выполнено ${doneCount} из ${list.length}`;
+    $('#achGrid').innerHTML = list.map(a => `
+        <div class="ach-item${a.done ? '' : ' locked'}">
+            <div class="ach-icon">${a.icon}</div>
+            <div class="ach-info">
+                <div class="ach-name">${a.name}</div>
+                <div class="ach-desc">${a.desc}</div>
+                <div class="ach-bar"><div class="fill" style="width:${Math.min(100, Math.round(a.cur / a.need * 100))}%"></div></div>
+            </div>
+        </div>`).join('');
+    $('#achievementsModal').classList.add('show');
+}
+
+function closeAchievements() {
+    $('#achievementsModal').classList.remove('show');
+}
+
+// ========================
+//  КУЛЬТОВАЯ КЛАССИКА
+// ========================
+function renderClassics() {
+    const section = $('#classicsSection');
+    const query = ($('#searchInput').value || '').trim();
+    const missing = CLASSICS.filter(c => !items.some(i => i.name.trim().toLowerCase() === c.name.toLowerCase()));
+    if (!missing.length || query) {
+        section.style.display = 'none';
+        return;
+    }
+    section.style.display = 'block';
+    $('#classicsRow').innerHTML = missing.slice(0, 12).map(c => `
+        <div class="classic-item" data-classic-name="${esc(c.name)}" data-classic-type="${c.type}">
+            <div class="classic-icon"><i class="fas fa-film"></i></div>
+            <div class="classic-name">${esc(c.name)}</div>
+            <div class="classic-year">${c.year}</div>
+            <button class="classic-add">+ Добавить</button>
+        </div>`).join('');
+}
+
+$('#classicsRow').addEventListener('click', function(e) {
+    const btn = e.target.closest('.classic-add');
+    if (!btn) return;
+    const el = btn.closest('[data-classic-name]');
+    if (!el) return;
+    if (addItem(el.dataset.classicName, el.dataset.classicType, 'Буду смотреть', 0, 0, '', 0, 0, '')) {
+        render();
+        showToast('📌 Добавлено в «Буду смотреть»!');
+    }
+});
+
+// ========================
+//  ЕЖЕНЕДЕЛЬНАЯ СВОДКА
+// ========================
+function weeklySummary() {
+    try {
+        const now = new Date();
+        const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
+        let added = 0;
+        let before = 0;
+        items.forEach(i => {
+            const d = new Date(i.id);
+            if (!isNaN(d) && d > weekStart) added++;
+            else if (!isNaN(d) && d > new Date(weekStart.getTime() - 7 * 86400000)) before++;
+        });
+        if (localStorage.getItem(WEEK_KEY) !== now.toDateString() && added > 0) {
+            const diff = added - before;
+            const diffText = diff > 0 ? ` (+${diff} к прошлой)` : diff < 0 ? ` (${diff} к прошлой)` : '';
+            showToast(`📈 За неделю добавлено: ${added}${diffText}`);
+            localStorage.setItem(WEEK_KEY, now.toDateString());
+        }
+    } catch (e) { /* ignore */ }
+}
+
+// ========================
+//  ФОНОВАЯ ДОЗАГРУЗКА TMDB (год + рейтинг + жанры + хронометраж)
 // ========================
 function backfillTMDB() {
     let done = false;
@@ -1202,6 +2038,14 @@ function backfillTMDB() {
                     if (item.tmdbRating === null && first.vote_average) {
                         item.tmdbRating = Math.round(first.vote_average * 10) / 10;
                     }
+                    if (!item.overview && first.overview) item.overview = first.overview;
+                    if (item.runtime === null && first.runtime) item.runtime = first.runtime;
+                    if ((!item.genres || !item.genres.length) && first.genre_ids && first.genre_ids.length) {
+                        try {
+                            const genreMap = await fetchGenreMap();
+                            item.genres = first.genre_ids.map(id => genreMap[id]).filter(Boolean);
+                        } catch (e) { /* ignore */ }
+                    }
                 }
             }
         } catch (e) { /* ignore */ }
@@ -1213,8 +2057,6 @@ function backfillTMDB() {
 // ========================
 //  КНОПКИ ШАПКИ И FAB
 // ========================
-$('#importBtn').addEventListener('click', () => $('#importInput').click());
-$('#importInput').addEventListener('change', importData);
 $('#fabAdd').addEventListener('click', openAddModal);
 
 // ========================

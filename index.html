@@ -24,15 +24,21 @@
                 <button class="icon-btn" id="randomBtn" title="Случайный фильм"><i class="fas fa-dice"></i></button>
                 <button class="icon-btn" id="themeBtn" title="Тема"><i class="fas fa-moon"></i></button>
                 <div class="export-wrap">
-                    <button class="icon-btn" id="exportBtn" title="Экспорт"><i class="fas fa-download"></i></button>
-                    <div class="export-menu" id="exportMenu">
-                        <button data-format="json"><i class="fas fa-file-code"></i> JSON (бэкап)</button>
-                        <button data-format="markdown"><i class="fas fa-file-lines"></i> Markdown</button>
-                        <button data-format="csv"><i class="fas fa-table"></i> CSV (Excel)</button>
+                    <button class="icon-btn" id="menuBtn" title="Меню"><i class="fas fa-bars"></i></button>
+                    <div class="export-menu" id="mainMenu">
+                        <button data-action="achievements"><i class="fas fa-trophy"></i> Достижения</button>
+                        <button data-action="analytics"><i class="fas fa-chart-column"></i> Аналитика</button>
+                        <button data-action="trash"><i class="fas fa-trash-can"></i> Корзина <span class="menu-badge" id="menuTrashCount"></span></button>
+                        <button data-action="duplicates"><i class="fas fa-copy"></i> Найти дубликаты</button>
+                        <div class="menu-sep"></div>
+                        <button data-action="export-json"><i class="fas fa-file-code"></i> Экспорт JSON</button>
+                        <button data-action="export-md"><i class="fas fa-file-lines"></i> Экспорт Markdown</button>
+                        <button data-action="export-csv"><i class="fas fa-table"></i> Экспорт CSV</button>
+                        <div class="menu-sep"></div>
+                        <button data-action="import"><i class="fas fa-upload"></i> Импорт (JSON/CSV)</button>
                     </div>
                 </div>
-                <button class="icon-btn" id="importBtn" title="Импорт"><i class="fas fa-upload"></i></button>
-                <input type="file" id="importInput" accept=".json" style="display:none" />
+                <input type="file" id="importInput" accept=".json,.csv" style="display:none" />
             </div>
         </div>
     </header>
@@ -61,6 +67,10 @@
                 <div class="num" id="avgRating">—</div>
                 <div class="lbl">Средняя</div>
             </div>
+            <div class="stat level" title="Открой меню → Достижения" onclick="renderAchievements()">
+                <div class="num" id="levelVal">—</div>
+                <div class="lbl">Уровень</div>
+            </div>
         </div>
 
         <!-- УПРАВЛЕНИЕ -->
@@ -70,11 +80,13 @@
                 <button class="chip" data-filter="Фильм">🎬 Фильмы</button>
                 <button class="chip" data-filter="Сериал">📺 Сериалы</button>
                 <button class="chip" data-filter="Аниме">🎌 Аниме</button>
+                <button class="chip" data-filter="important">⭐ Важные</button>
             </div>
 
             <div class="filters-row" id="statusFilters">
                 <button class="chip active" data-status="all">Все статусы</button>
                 <button class="chip status-watching" data-status="В процессе">⏳ В процессе</button>
+                <button class="chip status-pause" data-status="На паузе">⏸️ На паузе</button>
                 <button class="chip status-plan" data-status="Буду смотреть">📌 Буду смотреть</button>
             </div>
 
@@ -85,6 +97,8 @@
                 <button class="chip" data-decade="2010">10-е</button>
                 <button class="chip" data-decade="2020">20-е</button>
             </div>
+
+            <div class="filters-row" id="folderFilters" style="display:none;"></div>
 
             <div class="toolbar">
                 <select class="sort-select" id="sortSelect">
@@ -97,6 +111,12 @@
                     <option value="id-asc">📅 Сначала старые</option>
                     <option value="manual">✋ Свой порядок (drag & drop)</option>
                 </select>
+                <button class="icon-btn" id="saveFilterBtn" title="Сохранить фильтр как папку"><i class="far fa-bookmark"></i></button>
+                <div class="view-toggle" id="sizeToggle">
+                    <button id="sizeS" title="Маленькие карточки">S</button>
+                    <button id="sizeM" class="active" title="Средние карточки">M</button>
+                    <button id="sizeL" title="Большие карточки">L</button>
+                </div>
                 <div class="view-toggle">
                     <button id="viewGrid" class="active" title="Сетка"><i class="fas fa-th-large"></i></button>
                     <button id="viewList" title="Список"><i class="fas fa-list"></i></button>
@@ -110,6 +130,10 @@
                 <i class="fas fa-search"></i>
                 <input type="text" id="searchInput" placeholder="Поиск по названию или добавь новое..." />
             </div>
+            <select class="sort-select" id="searchMode" title="Область поиска" style="width:auto;">
+                <option value="name">📛 Название</option>
+                <option value="all">🔎 Везде (название, жанры, год, статус)</option>
+            </select>
             <button class="search-btn" id="searchBtn"><i class="fas fa-plus"></i> Найти</button>
         </div>
 
@@ -119,6 +143,12 @@
         <div class="recent-section" id="recentSection" style="display:none;">
             <div class="recent-title"><i class="fas fa-clock-rotate-left"></i> Недавно добавленные</div>
             <div class="recent-row" id="recentRow"></div>
+        </div>
+
+        <!-- КЛАССИКА -->
+        <div class="recent-section classics-section" id="classicsSection" style="display:none;">
+            <div class="recent-title"><i class="fas fa-wand-magic-sparkles"></i> Пополни коллекцию</div>
+            <div class="classics-row" id="classicsRow"></div>
         </div>
 
         <!-- КАРТОЧКИ -->
@@ -158,6 +188,7 @@
                     <select id="editStatus" onchange="toggleEditFields()">
                         <option value="Просмотрено">✅ Просмотрено</option>
                         <option value="В процессе">⏳ В процессе</option>
+                        <option value="На паузе">⏸️ На паузе</option>
                         <option value="Буду смотреть">📌 Буду смотреть</option>
                     </select>
                 </div>
@@ -190,6 +221,10 @@
             </div>
             <label>Постер (URL)</label>
             <input type="text" id="editPoster" placeholder="https://image.tmdb.org/..." />
+            <label style="display:flex;align-items:center;gap:8px;margin-top:14px;cursor:pointer;">
+                <input type="checkbox" id="editImportant" style="width:16px;height:16px;accent-color:var(--gold);" />
+                ⭐ Важное (выделять в списке)
+            </label>
             <div class="modal-actions">
                 <button class="btn-ghost" id="cancelModalBtn">Отмена</button>
                 <button class="btn-primary" id="saveModalBtn">💾 Сохранить</button>
@@ -213,6 +248,7 @@
                         <span id="detailYear">—</span>
                     </div>
                     <div class="detail-watched" id="detailWatched"></div>
+                    <div class="detail-watched" id="detailRuntime" style="font-size:12px;opacity:0.85;"></div>
                 </div>
             </div>
             <div class="detail-body">
@@ -240,6 +276,7 @@
                 <div class="detail-section-title">Похожее</div>
                 <div class="detail-similar" id="detailSimilar"></div>
                 <div class="modal-actions">
+                    <button class="btn-ghost" id="detailImportantBtn" onclick="toggleDetailImportant()" style="width:100%;"></button>
                     <button class="btn-ghost" onclick="closeDetail()" style="width:100%;">Закрыть</button>
                 </div>
             </div>
@@ -262,6 +299,107 @@
     </div>
 
     <div class="toast" id="toast"></div>
+
+    <!-- БЫСТРАЯ ОЦЕНКА -->
+    <div class="modal-overlay" id="rateModal">
+        <div class="modal" style="max-width:360px;">
+            <div class="modal-head">
+                <h3>⭐ Оценка</h3>
+                <button class="modal-close" onclick="closeRate()"><i class="fas fa-xmark"></i></button>
+            </div>
+            <p class="rate-hint" id="rateTitle" style="color:#b9b9c3;font-size:15px;">—</p>
+            <div class="rate-grid" id="rateGrid">
+                <button class="rate-btn" data-rate="1">1</button>
+                <button class="rate-btn" data-rate="2">2</button>
+                <button class="rate-btn" data-rate="3">3</button>
+                <button class="rate-btn" data-rate="4">4</button>
+                <button class="rate-btn" data-rate="5">5</button>
+                <button class="rate-btn" data-rate="6">6</button>
+                <button class="rate-btn" data-rate="7">7</button>
+                <button class="rate-btn" data-rate="8">8</button>
+                <button class="rate-btn" data-rate="9">9</button>
+                <button class="rate-btn" data-rate="10">10</button>
+                <button class="rate-btn clear" data-rate="0">Сбросить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- КОРЗИНА -->
+    <div class="modal-overlay" id="trashModal">
+        <div class="modal" style="max-width:420px;">
+            <div class="modal-head">
+                <h3>🗑️ Корзина <span id="trashCount" style="color:var(--muted);font-size:13px;"></span></h3>
+                <button class="modal-close" onclick="closeTrash()"><i class="fas fa-xmark"></i></button>
+            </div>
+            <div id="trashList"></div>
+            <div class="modal-actions">
+                <button class="btn-ghost" id="trashClear">Очистить всё</button>
+                <button class="btn-primary" onclick="closeTrash()">Закрыть</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ДУБЛИКАТЫ -->
+    <div class="modal-overlay" id="duplicatesModal">
+        <div class="modal" style="max-width:420px;">
+            <div class="modal-head">
+                <h3>👯 Дубликаты</h3>
+                <button class="modal-close" onclick="closeDuplicates()"><i class="fas fa-xmark"></i></button>
+            </div>
+            <p style="font-size:12.5px;color:var(--muted);margin-bottom:10px;">Удаление дубля отправит его в корзину</p>
+            <div id="dupList"></div>
+            <div class="modal-actions">
+                <button class="btn-ghost" onclick="closeDuplicates()">Закрыть</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- АНАЛИТИКА -->
+    <div class="modal-overlay" id="analyticsModal">
+        <div class="modal" style="max-width:520px;">
+            <div class="modal-head">
+                <h3>📊 Аналитика</h3>
+                <button class="modal-close" onclick="closeAnalytics()"><i class="fas fa-xmark"></i></button>
+            </div>
+            <div id="analyticsBody"></div>
+            <div class="modal-actions">
+                <button class="btn-ghost" onclick="closeAnalytics()" style="width:100%;">Закрыть</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ДОСТИЖЕНИЯ -->
+    <div class="modal-overlay" id="achievementsModal">
+        <div class="modal" style="max-width:520px;">
+            <div class="modal-head">
+                <h3>🏆 Достижения</h3>
+                <button class="modal-close" onclick="closeAchievements()"><i class="fas fa-xmark"></i></button>
+            </div>
+            <div class="ach-level">
+                <div class="lv" id="achLevelName">Новичок</div>
+                <div class="sub" id="achLevelSub">—</div>
+            </div>
+            <div class="ach-grid" id="achGrid"></div>
+            <div class="modal-actions">
+                <button class="btn-ghost" onclick="closeAchievements()" style="width:100%;">Закрыть</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ПРОМПТ (имя папки) -->
+    <div class="modal-overlay" id="promptModal">
+        <div class="modal" style="max-width:340px;">
+            <div class="modal-head">
+                <h3 id="promptTitle">Название</h3>
+                <button class="modal-close" id="promptClose"><i class="fas fa-xmark"></i></button>
+            </div>
+            <input type="text" id="promptInput" placeholder="Название..." />
+            <div class="modal-actions">
+                <button class="btn-ghost" id="promptCancel">Отмена</button>
+                <button class="btn-primary" id="promptOk">Сохранить</button>
+            </div>
+        </div>
+    </div>
 
     <script src="data.js"></script>
     <script src="app.js"></script>
