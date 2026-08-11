@@ -1185,6 +1185,49 @@ body::before {
     justify-content: center;
 }
 
+.hero-fallback {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    color: var(--dim);
+    background:
+        radial-gradient(300px 160px at 20% 0%, rgba(139, 92, 246, 0.15), transparent 70%),
+        radial-gradient(300px 160px at 90% 100%, rgba(56, 189, 248, 0.12), transparent 70%),
+        #10101a;
+}
+
+.hero-fallback i {
+    font-size: 42px;
+    opacity: 0.5;
+}
+
+.hero-fallback span {
+    font-size: 13px;
+    font-weight: 600;
+    max-width: 70%;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sr-fallback {
+    width: 44px;
+    height: 66px;
+    border-radius: 8px;
+    background: #10101a;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #52525b;
+    font-size: 16px;
+}
+
 .detail-hero .detail-close:hover {
     background: rgba(248, 113, 113, 0.3);
     border-color: var(--red);

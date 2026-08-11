@@ -3,6 +3,63 @@
 // ========================
 const TMDB_API_KEY = '40f8044a3992bf1a264badac3ca33f28';
 
+// TMDB теперь требует авторизацию через заголовок Authorization: Bearer
+// (api_key в query-параметрах отключён). На случай старых/нештатных режимов
+// при 401/403 пробуем fallback с api_key в URL.
+async function tmdbFetch(path) {
+    const base = 'https://api.themoviedb.org/3';
+    const url = base + path;
+
+    let resp = await fetch(url, {
+        headers: { Authorization: `Bearer ${TMDB_API_KEY}` }
+    });
+
+    if (resp.status === 401 || resp.status === 403) {
+        const sep = path.includes('?') ? '&' : '?';
+        resp = await fetch(`${url}${sep}api_key=${TMDB_API_KEY}`);
+    }
+    return resp;
+}
+
+// ========================
+//  ПОСТЕРЫ (с fallback через прокси)
+// ========================
+function posterFallbackHtml(mode, name) {
+    if (mode === 'grid') {
+        return `<div class="poster-fallback"><i class="fas fa-film"></i><span class="pf-title">${esc(name)}</span></div>`;
+    }
+    if (mode === 'list') return '<div class="l-fallback"><i class="fas fa-film"></i></div>';
+    if (mode === 'similar') return '<div class="s-fallback"><i class="fas fa-film"></i></div>';
+    if (mode === 'search') return '<div class="sr-fallback"><i class="fas fa-film"></i></div>';
+    if (mode === 'hero') return '<div class="hero-fallback"><i class="fas fa-film"></i></div>';
+    return '';
+}
+
+// Запасной путь для картинок: image.tmdb.org может блокироваться сетью,
+// тогда грузим через прокси wsrv.nl, а если и он не смог — плейсхолдер.
+window.posterError = function(img, url, w, mode, name) {
+    if (img.dataset.retried) {
+        if (mode === 'hero') {
+            img.style.display = 'none';
+            const fb = document.getElementById('detailHeroFallback');
+            if (fb) fb.style.display = 'flex';
+        } else {
+            img.outerHTML = posterFallbackHtml(mode, name);
+        }
+        return;
+    }
+    img.dataset.retried = '1';
+    img.referrerPolicy = 'no-referrer';
+    img.src = 'https://wsrv.nl/?url=' + encodeURIComponent(url) + '&w=' + w;
+};
+
+function posterTag(url, alt, mode, name) {
+    const w = mode === 'hero' ? 500 : mode === 'similar' ? 92 : 342;
+    const fbName = mode === 'grid' ? (name || alt) : '';
+    return `<img src="${esc(url)}" alt="${esc(alt)}" loading="lazy" referrerpolicy="no-referrer"
+        onerror="posterError(this,'${esc(url)}','${w}','${mode}','${esc(fbName)}')" />`;
+}
+
 // ========================
 //  СОСТОЯНИЕ
 // ========================
@@ -162,16 +219,9 @@ function ratingBadgeHtml(rating) {
 
 function posterHtml(item, cls) {
     if (item.poster) {
-        return `<img src="${esc(item.poster)}" alt="${esc(item.name)}" loading="lazy" onerror="this.outerHTML=''" />`;
+        return posterTag(item.poster, item.name, cls === 'grid' ? 'grid' : 'list');
     }
-    if (cls === 'grid') {
-        return `
-            <div class="poster-fallback">
-                <i class="fas fa-film"></i>
-                <span class="pf-title">${esc(item.name)}</span>
-            </div>`;
-    }
-    return `<div class="l-fallback"><i class="fas fa-film"></i></div>`;
+    return posterFallbackHtml(cls === 'grid' ? 'grid' : 'list', item.name);
 }
 
 function progressHtml(item) {
@@ -450,10 +500,8 @@ async function searchTMDB() {
     resultsEl.classList.add('show');
 
     try {
-        const url =
-            `https://api.themoviedb.org/3/search/multi?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}&language=ru-RU`;
-        const response = await fetch(url);
-        if (!response.ok) throw new Error('TMDB error');
+        const response = await tmdbFetch(`/search/multi?query=${encodeURIComponent(query)}&language=ru-RU`);
+        if (!response.ok) throw { api: true, status: response.status };
         const data = await response.json();
 
         if (!data.results || !data.results.length) {
@@ -475,8 +523,8 @@ async function searchTMDB() {
             return `
                 <div class="search-result-item" data-result-name="${esc(title)}" data-result-type="${mediaType}"
                      data-result-rating="${rating}" data-result-poster="${esc(poster)}">
-                    ${poster ? `<img src="${esc(poster)}" alt="${esc(title)}" />` :
-                        '<div style="width:44px;height:66px;background:#10101a;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#52525b;"><i class="fas fa-film"></i></div>'}
+                    ${poster ? posterTag(poster, title, 'search') :
+                        '<div class="sr-fallback"><i class="fas fa-film"></i></div>'}
                     <div class="info">
                         <div class="title">${esc(title)}${exists ? '<span class="exists-flag"><i class="fas fa-circle-check"></i>уже есть</span>' : ''}</div>
                         <div class="meta">${esc(mediaType)} ${year ? '· ' + esc(year) : ''} ${rating ? '⭐ ' + rating : ''}</div>
@@ -486,7 +534,11 @@ async function searchTMDB() {
         }).join('');
 
     } catch (e) {
-        resultsEl.innerHTML = '<div style="color:#f87171;padding:12px;">❌ Ошибка запроса. Проверь интернет.</div>';
+        if (e && e.api && (e.status === 401 || e.status === 403)) {
+            resultsEl.innerHTML = '<div style="color:#f87171;padding:12px;">❌ TMDB отклонил API-ключ</div>';
+        } else {
+            resultsEl.innerHTML = '<div style="color:#f87171;padding:12px;">❌ Ошибка запроса. Проверь интернет.</div>';
+        }
         console.error(e);
     }
 }
@@ -517,7 +569,21 @@ function openDetail(id) {
     if (!item) return;
 
     const modal = $('#detailModal');
-    $('#detailPoster').src = item.poster || '';
+    const heroImg = $('#detailPoster');
+    const heroFallback = $('#detailHeroFallback');
+
+    heroImg.onerror = null;
+    heroImg.dataset.retried = '';
+    if (item.poster) {
+        heroImg.src = item.poster;
+        heroImg.style.display = 'block';
+        heroFallback.style.display = 'none';
+        heroImg.onerror = () => posterError(heroImg, item.poster, 500, 'hero');
+    } else {
+        heroImg.style.display = 'none';
+        heroFallback.style.display = 'flex';
+    }
+
     $('#detailTitle').textContent = item.name;
     $('#detailYear').textContent = '—';
     $('#detailYear2').textContent = '—';
@@ -556,7 +622,7 @@ function openDetail(id) {
                 const posterPath = s.poster_path ? `https://image.tmdb.org/t/p/w92${s.poster_path}` : '';
                 return `
                     <div class="detail-similar-item" data-similar-name="${esc(name)}">
-                        ${posterPath ? `<img src="${esc(posterPath)}" alt="${esc(name)}" />` :
+                        ${posterPath ? posterTag(posterPath, name, 'similar') :
                             '<div class="s-fallback"><i class="fas fa-film"></i></div>'}
                         <div class="name">${esc(name)}</div>
                     </div>`;
@@ -571,9 +637,7 @@ function openDetail(id) {
 }
 
 async function fetchTMDBDetail(name) {
-    const url =
-        `https://api.themoviedb.org/3/search/multi?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(name)}&language=ru-RU`;
-    const resp = await fetch(url);
+    const resp = await tmdbFetch(`/search/multi?query=${encodeURIComponent(name)}&language=ru-RU`);
     if (!resp.ok) throw new Error('TMDB error');
     const data = await resp.json();
     if (!data.results || !data.results.length) return {};
@@ -597,9 +661,7 @@ async function fetchTMDBDetail(name) {
     }
 
     try {
-        const similarUrl =
-            `https://api.themoviedb.org/3/${mediaType}/${first.id}/similar?api_key=${TMDB_API_KEY}&language=ru-RU`;
-        const similarResp = await fetch(similarUrl);
+        const similarResp = await tmdbFetch(`/${mediaType}/${first.id}/similar?language=ru-RU`);
         if (similarResp.ok) {
             const similarData = await similarResp.json();
             detail.similar = similarData.results || [];
@@ -612,9 +674,7 @@ async function fetchTMDBDetail(name) {
 let genreCache = null;
 async function fetchGenreMap() {
     if (genreCache) return genreCache;
-    const url =
-        `https://api.themoviedb.org/3/genre/movie/list?api_key=${TMDB_API_KEY}&language=ru-RU`;
-    const resp = await fetch(url);
+    const resp = await tmdbFetch('/genre/movie/list?language=ru-RU');
     const data = await resp.json();
     const map = {};
     (data.genres || []).forEach(g => { map[g.id] = g.name; });
@@ -633,9 +693,7 @@ $('#detailSimilar').addEventListener('click', async function(e) {
     }
     showToast('🔍 Ищем и добавляем...');
     try {
-        const url =
-            `https://api.themoviedb.org/3/search/multi?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(name)}&language=ru-RU`;
-        const resp = await fetch(url);
+        const resp = await tmdbFetch(`/search/multi?query=${encodeURIComponent(name)}&language=ru-RU`);
         const data = await resp.json();
         if (data.results && data.results.length) {
             const first = data.results[0];
