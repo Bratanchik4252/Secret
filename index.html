@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+    <title>Мой киноархив</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet" />
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #0a0a0f;
+            color: #e8e8f0;
+            padding: 20px 16px 100px;
+            min-height: 100vh;
+        }
+        .container { max-width: 700px; margin: 0 auto; }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.5px;
+        }
+        .header-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .header-actions button {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: #aaa;
+            padding: 8px 12px;
+            border-radius: 10px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+            backdrop-filter: blur(10px);
+        }
+        .header-actions button:hover {
+            background: rgba(255, 255, 255, 0.12);
+            color: #fff;
+        }
+        .header-actions .import-btn {
+            background: rgba(46, 204, 113, 0.15);
+            border-color: rgba(46, 204, 113, 0.3);
+            color: #2ecc71;
+        }
+        .header-actions .import-btn:hover {
+            background: rgba(46, 204, 113, 0.25);
+        }
+        .header-actions .import-btn:disabled {
+            opacity: 0.4;
+            pointer-events: none;
+        }
+
+        /* Stats */
+        .stats {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #888;
+        }
+        .stats span {
+            background: rgba(255, 255, 255, 0.04);
+            padding: 4px 14px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .stats strong { color: #fff; }
+
+        /* Filters */
+        .filters {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        .filters button {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            color: #888;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        .filters button.active {
+            background: rgba(245, 87, 108, 0.2);
+            border-color: #f5576c;
+            color: #fff;
+        }
+        .filters button:hover { background: rgba(255, 255, 255, 0.08); }
+
+        /* Search & Add */
+        .search-add {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .search-add input {
+            flex: 1;
+            min-width: 160px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 12px 16px;
+            color: #fff;
+            font-size: 15px;
+            font-family: inherit;
+            outline: none;
+            transition: border 0.2s;
+        }
+        .search-add input:focus { border-color: #f5576c; }
+        .search-add input::placeholder { color: #555; }
+        .search-add button {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border: none;
+            color: #fff;
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+            white-space: nowrap;
+        }
+        .search-add button:active { transform: scale(0.96); }
+
+        /* Search results */
+        .search-results {
+            margin-bottom: 20px;
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .search-results.show { display: flex; }
+        .search-result-item {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .search-result-item:active { transform: scale(0.98); }
+        .search-result-item img {
+            width: 44px;
+            height: 66px;
+            object-fit: cover;
+            border-radius: 6px;
+            background: #1a1a2e;
+        }
+        .search-result-item .info { flex: 1; }
+        .search-result-item .info .title { font-weight: 600; font-size: 15px; }
+        .search-result-item .info .meta { font-size: 13px; color: #888; margin-top: 2px; }
+        .search-result-item .info .meta .rating { color: #f5c518; margin-left: 8px; }
+        .search-result-item .add-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: none;
+            color: #fff;
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        /* Cards */
+        .cards {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 14px;
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            transition: all 0.2s;
+            animation: fadeIn 0.25s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .card img {
+            width: 48px;
+            height: 72px;
+            object-fit: cover;
+            border-radius: 8px;
+            background: #1a1a2e;
+            flex-shrink: 0;
+        }
+        .card .info { flex: 1; min-width: 0; }
+        .card .info .title {
+            font-weight: 600;
+            font-size: 15px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .card .info .meta {
+            font-size: 13px;
+            color: #888;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            margin-top: 2px;
+        }
+        .card .info .meta .badge {
+            padding: 0 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.06);
+        }
+        .card .info .meta .badge.film { background: rgba(52, 152, 219, 0.2); color: #5dade2; }
+        .card .info .meta .badge.serial { background: rgba(46, 204, 113, 0.2); color: #58d68d; }
+        .card .info .meta .badge.anime { background: rgba(155, 89, 182, 0.2); color: #af7ac5; }
+        .card .info .meta .badge.status { background: rgba(255, 255, 255, 0.04); color: #888; }
+
+        .card .rating-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            flex-shrink: 0;
+            background: rgba(255, 255, 255, 0.04);
+            border: 2px solid rgba(255, 255, 255, 0.08);
+        }
+        .card .rating-circle.high { border-color: #2ecc71; color: #2ecc71; }
+        .card .rating-circle.mid { border-color: #f1c40f; color: #f1c40f; }
+        .card .rating-circle.low { border-color: #e74c3c; color: #e74c3c; }
+        .card .rating-circle.zero { border-color: #555; color: #555; }
+
+        .card .actions {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        .card .actions button {
+            background: rgba(255, 255, 255, 0.04);
+            border: none;
+            color: #666;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .card .actions button:active { transform: scale(0.9); }
+        .card .actions button.delete:active { background: rgba(231, 76, 60, 0.2); color: #e74c3c; }
+        .card .actions button.edit:active { background: rgba(241, 196, 15, 0.2); color: #f1c40f; }
+
+        /* Empty */
+        .empty {
+            text-align: center;
+            padding: 60px 20px;
+            color: #555;
+        }
+        .empty i { font-size: 48px; margin-bottom: 16px; opacity: 0.3; }
+        .empty p { font-size: 16px; }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 999;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal {
+            background: #1a1a2e;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            padding: 28px 24px;
+            max-width: 400px;
+            width: 100%;
+            animation: fadeIn 0.2s ease;
+        }
+        .modal h3 { font-size: 20px; margin-bottom: 16px; }
+        .modal label { font-size: 13px; color: #888; display: block; margin-top: 12px; margin-bottom: 4px; }
+        .modal input, .modal select {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            padding: 10px 14px;
+            color: #fff;
+            font-size: 15px;
+            font-family: inherit;
+            outline: none;
+        }
+        .modal input:focus, .modal select:focus { border-color: #f5576c; }
+        .modal .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .modal .modal-actions button {
+            flex: 1;
+            padding: 12px;
+            border-radius: 12px;
+            border: none;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+        .modal .modal-actions button:active { transform: scale(0.96); }
+        .modal .modal-actions .save-btn { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: #fff; }
+        .modal .modal-actions .cancel-btn { background: rgba(255, 255, 255, 0.06); color: #888; }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #2ecc71;
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 14px;
+            font-weight: 600;
+            font-size: 14px;
+            opacity: 0;
+            transition: all 0.3s;
+            pointer-events: none;
+            z-index: 1000;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+            max-width: 90%;
+            text-align: center;
+        }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        .toast.error { background: #e74c3c; }
+
+        /* Progress bar inside toast */
+        .toast .progress-wrap {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+        .toast .progress-wrap div {
+            height: 100%;
+            width: 0%;
+            background: #fff;
+            border-radius: 10px;
+            transition: width 0.3s;
+        }
+
+        @media (max-width: 480px) {
+            .header h1 { font-size: 22px; }
+            .card { padding: 12px 12px; gap: 10px; }
+            .card img { width: 40px; height: 60px; }
+            .card .info .title { font-size: 14px; }
+            .search-add input { font-size: 14px; padding: 10px 14px; }
+            .search-add button { padding: 10px 16px; font-size: 14px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+
+        <!-- Header -->
+        <div class="header">
+            <h1>🎬 Мой архив</h1>
+            <div class="header-actions">
+                <button onclick="exportData()"><i class="fas fa-download"></i></button>
+                <button onclick="document.getElementById('importInput').click()"><i class="fas fa-upload"></i></button>
+                <input type="file" id="importInput" accept=".json" style="display:none" onchange="importData(event)" />
+                <button class="import-btn" id="bulkImportBtn" onclick="runBulkImport()"><i class="fas fa-rocket"></i> Импорт</button>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats" id="stats">
+            <span>📦 <strong id="totalCount">0</strong> всего</span>
+            <span>🎬 <strong id="filmCount">0</strong></span>
+            <span>📺 <strong id="serialCount">0</strong></span>
+            <span>🎌 <strong id="animeCount">0</strong></span>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters" id="filters">
+            <button class="active" data-filter="all">Все</button>
+            <button data-filter="Фильм">🎬 Фильмы</button>
+            <button data-filter="Сериал">📺 Сериалы</button>
+            <button data-filter="Аниме">🎌 Аниме</button>
+        </div>
+
+        <!-- Search + Add -->
+        <div class="search-add">
+            <input type="text" id="searchInput" placeholder="Поиск по названию..." />
+            <button onclick="searchTMDB()"><i class="fas fa-search"></i> Найти</button>
+        </div>
+
+        <!-- Search Results -->
+        <div class="search-results" id="searchResults"></div>
+
+        <!-- Cards -->
+        <div class="cards" id="cards"></div>
+
+        <!-- Empty -->
+        <div class="empty" id="emptyState">
+            <i class="fas fa-film"></i>
+            <p>Пока ничего нет.<br />Найди фильм, сериал или аниме и добавь!</p>
+        </div>
+
+    </div>
+
+    <!-- Edit Modal -->
+    <div class="modal-overlay" id="editModal">
+        <div class="modal">
+            <h3 id="modalTitle">✏️ Редактировать</h3>
+            <label>Название</label>
+            <input type="text" id="editName" />
+            <label>Тип</label>
+            <select id="editType">
+                <option value="Фильм">🎬 Фильм</option>
+                <option value="Сериал">📺 Сериал</option>
+                <option value="Аниме">🎌 Аниме</option>
+            </select>
+            <label>Статус</label>
+            <select id="editStatus">
+                <option value="Просмотрено">✅ Просмотрено</option>
+                <option value="В процессе">⏳ В процессе</option>
+                <option value="Брошено">❌ Брошено</option>
+            </select>
+            <label>Оценка (1–10)</label>
+            <input type="number" id="editRating" min="0" max="10" />
+            <label>Пересмотров</label>
+            <input type="number" id="editRewatches" min="0" />
+            <label>Постер (URL, опционально)</label>
+            <input type="text" id="editPoster" placeholder="https://image.tmdb.org/..." />
+            <div class="modal-actions">
+                <button class="cancel-btn" onclick="closeModal()">Отмена</button>
+                <button class="save-btn" onclick="saveEdit()">💾 Сохранить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast">
+        <span id="toastMsg">Сообщение</span>
+        <div class="progress-wrap"><div id="toastProgress"></div></div>
+    </div>
+
+    <script>
+        // ========================
+        //  КОНФИГУРАЦИЯ
+        // ========================
+        const TMDB_API_KEY = '40f8044a3992bf1a264badac3ca33f28';
+
+        // ========================
+        //  ДАННЫЕ
+        // ========================
+        let items = [];
+        let currentFilter = 'all';
+        let currentEditId = null;
+        let isImporting = false;
+
+        function loadData() {
+            const saved = localStorage.getItem('myKinoArchive');
+            if (saved) {
+                try { items = JSON.parse(saved); } catch (e) { items = []; }
+            }
+            if (!items || !items.length) {
+                items = [
+                    { id: Date.now() + 1, name: 'Интерстеллар', type: 'Фильм', status: 'Просмотрено', rating: 10,
+                        rewatches: 0, poster: '' },
+                    { id: Date.now() + 2, name: 'Бойцовский клуб', type: 'Фильм', status: 'Просмотрено', rating: 10,
+                        rewatches: 0, poster: '' },
+                    { id: Date.now() + 3, name: 'Токийский гуль', type: 'Аниме', status: 'Просмотрено', rating: 10,
+                        rewatches: 0, poster: '' },
+                ];
+            }
+            render();
+        }
+
+        function saveData() {
+            localStorage.setItem('myKinoArchive', JSON.stringify(items));
+            render();
+        }
+
+        // ========================
+        //  RENDER
+        // ========================
+        function render() {
+            const cardsEl = document.getElementById('cards');
+            const emptyEl = document.getElementById('emptyState');
+            const searchInput = document.getElementById('searchInput').value.toLowerCase().trim();
+
+            let filtered = items;
+            if (currentFilter !== 'all') {
+                filtered = filtered.filter(item => item.type === currentFilter);
+            }
+            if (searchInput) {
+                filtered = filtered.filter(item => item.name.toLowerCase().includes(searchInput));
+            }
+            filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+
+            document.getElementById('totalCount').textContent = items.length;
+            document.getElementById('filmCount').textContent = items.filter(i => i.type === 'Фильм').length;
+            document.getElementById('serialCount').textContent = items.filter(i => i.type === 'Сериал').length;
+            document.getElementById('animeCount').textContent = items.filter(i => i.type === 'Аниме').length;
+
+            if (!filtered.length) {
+                cardsEl.innerHTML = '';
+                emptyEl.style.display = 'block';
+                return;
+            }
+            emptyEl.style.display = 'none';
+
+            cardsEl.innerHTML = filtered.map(item => {
+                const ratingClass = item.rating >= 8 ? 'high' : item.rating >= 5 ? 'mid' : item.rating > 0 ? 'low' :
+                    'zero';
+                const ratingText = item.rating || '?';
+                const posterHtml = item.poster ?
+                    `<img src="${item.poster}" alt="${item.name}" loading="lazy" onerror="this.style.display='none'" />` :
+                    `<img src="" alt="" style="background:#1a1a2e;display:flex;align-items:center;justify-content:center;font-size:20px;color:#555;" />`;
+
+                const typeBadge = {
+                    'Фильм': 'film',
+                    'Сериал': 'serial',
+                    'Аниме': 'anime'
+                } [item.type] || '';
+
+                const rewatchText = item.rewatches ? `, ${item.rewatches} раз(а)` : '';
+
+                return `
+                        <div class="card">
+                            ${posterHtml}
+                            <div class="info">
+                                <div class="title">${item.name}</div>
+                                <div class="meta">
+                                    <span class="badge ${typeBadge}">${item.type || '?'}</span>
+                                    <span class="badge status">${item.status || 'Просмотрено'}</span>
+                                    <span>${item.rating ? '⭐ ' + item.rating + '/10' : 'Без оценки'}${rewatchText}</span>
+                                </div>
+                            </div>
+                            <div class="rating-circle ${ratingClass}">${ratingText}</div>
+                            <div class="actions">
+                                <button class="edit" onclick="openEdit('${item.id}')"><i class="fas fa-pen"></i></button>
+                                <button class="delete" onclick="deleteItem('${item.id}')"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </div>
+                    `;
+            }).join('');
+        }
+
+        // ========================
+        //  CRUD
+        // ========================
+        function addItem(name, type, status, rating, rewatches, poster) {
+            items.push({
+                id: Date.now() + Math.random(),
+                name: name.trim(),
+                type: type || 'Фильм',
+                status: status || 'Просмотрено',
+                rating: parseInt(rating) || 0,
+                rewatches: parseInt(rewatches) || 0,
+                poster: poster || '',
+            });
+            saveData();
+            showToast('✅ Добавлено!');
+        }
+
+        function deleteItem(id) {
+            if (!confirm('Удалить?')) return;
+            items = items.filter(item => item.id != id);
+            saveData();
+            showToast('🗑️ Удалено');
+        }
+
+        function openEdit(id) {
+            const item = items.find(i => i.id == id);
+            if (!item) return;
+            currentEditId = id;
+            document.getElementById('editName').value = item.name || '';
+            document.getElementById('editType').value = item.type || 'Фильм';
+            document.getElementById('editStatus').value = item.status || 'Просмотрено';
+            document.getElementById('editRating').value = item.rating || 0;
+            document.getElementById('editRewatches').value = item.rewatches || 0;
+            document.getElementById('editPoster').value = item.poster || '';
+            document.getElementById('modalTitle').textContent = '✏️ ' + item.name;
+            document.getElementById('editModal').classList.add('show');
+        }
+
+        function closeModal() {
+            document.getElementById('editModal').classList.remove('show');
+            currentEditId = null;
+        }
+
+        function saveEdit() {
+            const item = items.find(i => i.id == currentEditId);
+            if (!item) return;
+            item.name = document.getElementById('editName').value.trim() || item.name;
+            item.type = document.getElementById('editType').value;
+            item.status = document.getElementById('editStatus').value;
+            item.rating = parseInt(document.getElementById('editRating').value) || 0;
+            item.rewatches = parseInt(document.getElementById('editRewatches').value) || 0;
+            item.poster = document.getElementById('editPoster').value.trim() || '';
+            saveData();
+            closeModal();
+            showToast('💾 Сохранено!');
+        }
+
+        // ========================
+        //  ПОИСК TMDB
+        // ========================
+        async function searchTMDB() {
+            const query = document.getElementById('searchInput').value.trim();
+            if (!query) {
+                showToast('Введите название для поиска', true);
+                return;
+            }
+
+            const resultsEl = document.getElementById('searchResults');
+            resultsEl.innerHTML = '<div style="color:#888;padding:12px;">⏳ Поиск...</div>';
+            resultsEl.classList.add('show');
+
+            try {
+                const url =
+                    `https://api.themoviedb.org/3/search/multi?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}&language=ru-RU`;
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (!data.results || !data.results.length) {
+                    resultsEl.innerHTML = '<div style="color:#888;padding:12px;">😕 Ничего не найдено</div>';
+                    return;
+                }
+
+                const results = data.results.slice(0, 8);
+                resultsEl.innerHTML = results.map(item => {
+                    const title = item.title || item.name || 'Без названия';
+                    const year = item.release_date ? item.release_date.slice(0, 4) : item.first_air_date ? item
+                        .first_air_date.slice(0, 4) : '';
+                    const mediaType = item.media_type === 'movie' ? 'Фильм' : item.media_type === 'tv' ? 'Сериал' :
+                        'Фильм';
+                    const rating = item.vote_average ? Math.round(item.vote_average * 10) / 10 : '';
+                    const poster = item.poster_path ?
+                        `https://image.tmdb.org/t/p/w92${item.poster_path}` :
+                        '';
+
+                    return `
+                            <div class="search-result-item" onclick="addFromSearch('${title}', '${mediaType}', '${rating}', '${poster}')">
+                                ${poster ? `<img src="${poster}" alt="${title}" />` : '<div style="width:44px;height:66px;background:#1a1a2e;border-radius:6px;flex-shrink:0;"></div>'}
+                                <div class="info">
+                                    <div class="title">${title}</div>
+                                    <div class="meta">${mediaType} ${year ? '· ' + year : ''} ${rating ? '⭐ ' + rating : ''}</div>
+                                </div>
+                                <button class="add-btn"><i class="fas fa-plus"></i></button>
+                            </div>
+                        `;
+                }).join('');
+
+            } catch (e) {
+                resultsEl.innerHTML = '<div style="color:#e74c3c;padding:12px;">❌ Ошибка запроса. Проверь интернет.</div>';
+                console.error(e);
+            }
+        }
+
+        function addFromSearch(name, type, rating, poster) {
+            addItem(name, type, 'Просмотрено', rating || 0, 0, poster);
+            document.getElementById('searchResults').classList.remove('show');
+            document.getElementById('searchInput').value = '';
+        }
+
+        // ========================
+        //  ФИЛЬТРЫ
+        // ========================
+        document.getElementById('filters').addEventListener('click', function(e) {
+            const btn = e.target.closest('button');
+            if (!btn) return;
+            document.querySelectorAll('#filters button').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentFilter = btn.dataset.filter;
+            render();
+        });
+
+        let searchTimeout;
+        document.getElementById('searchInput').addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => render(), 200);
+        });
+        document.getElementById('searchInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') searchTMDB();
+        });
+
+        // ========================
+        //  ЭКСПОРТ / ИМПОРТ
+        // ========================
+        function exportData() {
+            const blob = new Blob([JSON.stringify(items, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'my_archive_backup.json';
+            a.click();
+            showToast('📦 Бэкап скачан!');
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (Array.isArray(data) && data.length) {
+                        items = data;
+                        saveData();
+                        showToast('✅ Импорт успешен!');
+                    } else {
+                        showToast('❌ Неверный формат', true);
+                    }
+                } catch (err) {
+                    showToast('❌ Ошибка чтения файла', true);
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        // ========================
+        //  БЫСТРЫЙ ИМПОРТ (BULK)
+        // ========================
+        const MY_FULL_LIST = [
+            // ---------- ФИЛЬМЫ ----------
+            { name: "Мумия", type: "Фильм", status: "Просмотрено", rating: 8, rewatches: 0 },
+            { name: "Закулисье реальности", type: "Фильм", status: "Просмотрено", rating: 7, rewatches: 0 },
+            { name: "Обсессия", type: "Фильм", status: "Просмотрено", rating: 5, rewatches: 0 },
+            { name: "Я иду искать 2", type: "Фильм", status: "Просмотрено", rating: 3, rewatches: 0 },
+            { name: "Горничная", type: "Фильм", status: "Просмотрено", rating: 3, rewatches: 0 },
+            { name: "Одержимость", type: "Фильм", status: "Просмотрено", rating: 4, rewatches: 0 },
+            { name: "5 ночей с Фредди 2", type: "Фильм", status: "Просмотрено", rating: 4, rewatches: 0 },
+            { name: "Меню", type: "Фильм", status: "Просмотрено", rating: 5, rewatches: 0 },
+            { name: "Кунг-фу панда", type: "Фильм", status: "Просмотрено", rating: 9, rewatches: 0 },
+            { name: "Кунг-фу панда 2", type: "Фильм", status: "Просмотрено", rating: 9, rewatches: 0 },
+            { name: "Кунг-фу панда 3", type: "Фильм", status: "Просмотрено", rating: 9, rewatches: 0 },
+            { name: "Кунг-фу панда 4", type: "Фильм", status: "Просмотрено", rating: 7, rewatches: 0 },
+            { name: "Бэтмен", type: "Фильм", status: "Просмотрено", rating: 7, rewatches: 0 },
+            { name: "Трансформеры: Последний рыцарь", type: "Фильм", status: "Просмотрено", rating: 9, rewatches: 0 },
+            { name: "Трансформеры: Эпоха истребления", type: "Фильм", status: "Просмотрено", rating: 9, rewatches: 0 },
+            { name: "Трансформеры 3: Тёмная сторона Луны", type: "Фильм", status: "Просмотрено", rating: 7, rewatches: 0 },
+            { name: "Трансформеры: Месть падших", type: "Фильм", status: "Просмотрено", rating: 8, rewatches: 0 },
+            { name: "Побег из Шоушенка", type: "Фильм", status: "Просмотрено", rating: 8, rewatches: 3 },
+            { name: "Тёмный рыцарь: Возрождение легенды", type: "Фильм", status: "Просмотрено", rating: 6, rewatches: 2 },
+            { name: "Бэтмен: Начало", type: "Фильм", status: "Просмотрено", rating: 8, rewatches: 0 },
+            { name: "Тёмный рыцарь", type: "Фильм", status: "Просмотрено", rating: 9, rewatches: 0 },
+            { name: "Зомбилэнд", type: "Фильм", status: "Просмотрено", rating: 5, rewatches: 0 },
+            { name: "Ущелье", type: "Фильм", status: "Просмотрено", rating: 7, rewatches: 2 },
+            { name: "Оно", type: "Фильм", status: "Просмотрено", rating: 5, rewatches: 0 },
+            { name: "Оно 2", type: "Фильм", status: "Просмотрено", rating: 5, rewatches: 0 },
+            { name: "Паразиты", type: "Фильм", status: "Просмотрено", rating: 2, rewatches: 0 },
+            { name: "Лекарство от здоровья", type: "Фильм", status: "Просмотрено", rating: 5, rewatches: 0 },
+            { name: "Телохранитель киллера", type: "Фильм", status: "Просмотрено", rating: 6, rewatches: 0 },
+            { name: "Основатель", type: "Фильм", status: "Просмотрено", rating: 7, rewatches: 0 },
+            { name: "Шоу Трумана", type: "Фильм", status: "Просмотрено", rating: 4, rewatches: 0 },
+            { name: "Бегущий в лабиринте", type: "Фильм", status: "Просмотрено", rating: 7, rewatches: 0 },
+            { name: "Бегущий в лабиринте: Испытание огнем", type: "Фильм", status: "Просмотрено", rating: 8, rewatches: 0 },
+            { name: "Бегущий в лабиринте: Лекарство от смерти", type: "Фильм", status: "Просмотрено", rating: 8,
+            rewatches: 0 },
+            { name: "Зелёная книга", type: "Фильм", status: "Просмотрено", rating: 7, rewatches: 0 },
+            { name: "Первому игроку приготовиться", type: "Фильм", status: "Просмотрено", rating: 8, rewatches: 0 },
+            { name: "Бойцовский клуб", type: "Фильм", status: "Просмотрено", rating: 10, rewatches: 0 },
+            { name: "Мгла", type: "Фильм", status: "Просмотрено", rating: 6, rewatches: 0 },
+            { name: "Отмель", type: "Фильм", status: "Просмотрено", rating: 7, rewatches: 0 },
+            { name: "Вышка", type: "Фильм", status: "Просмотрено", rating: 7, rewatches: 0 },
+            { name: "Марсианин", type: "Фильм", status: "Просмотрено", rating: 9, rewatches: 3 },
+            { name: "Интерстеллар", type: "Фильм", status: "Просмотрено", rating: 10, rewatches: 0 },
+            { name: "Время", type: "Фильм", status: "Просмотрено", rating: 4, rewatches: 0 },
+            { name: "1+1", type: "Фильм", status: "Просмотрено", rating: 8, rewatches: 0 },
+            { name: "Зверополис", type: "Фильм", status: "Просмотрено", rating: 8, rewatches: 0 },
+            { name: "Шан-Чи и легенда десяти колец", type: "Фильм", status: "Просмотрено", rating: 8, rewatches: 0 },
+            { name: "Анчартед: На картах не значится", type: "Фильм", status: "Просмотрено", rating: 9, rewatches: 0 },
+            { name: "Волк с Уолл-стрит", type: "Фильм", status: "Просмотрено", rating: 9, rewatches: 0 },
+            { name: "Поймай меня, если сможешь", type: "Фильм", status: "Просмотрено", rating: 7, rewatches: 0 },
+            { name: "Хэнкок", type: "Фильм", status: "Просмотрено", rating: 7, rewatches: 0 },
+            { name: "Большой Стэн", type: "Фильм", status: "Просмотрено", rating: 3, rewatches: 0 },
+            { name: "Шазам!", type: "Фильм", status: "Просмотрено", rating: 7, rewatches: 0 },
+            { name: "Чёрный Адам", type: "Фильм", status: "Просмотрено", rating: 7, rewatches: 0 },
+            { name: "Призрачный гонщик", type: "Фильм", status: "Просмотрено", rating: 9, rewatches: 0 },
+            { name: "Призрачный гонщик 2", type: "Фильм", status: "Просмотрено", rating: 9, rewatches: 0 },
+            { name: "Железный человек", type: "Фильм", status: "Просмотрено", rating: 10, rewatches: 0 },
+            { name: "Невероятный Халк", type: "Фильм", status: "Просмотрено", rating: 9, rewatches: 0 },
+            { name: "Железный человек 2", type: "Фильм", status: "Просмотрено", rating: 10, rewatches: 0 },
+            { name: "Первый мститель", type: "Фильм", status: "Просмотрено", rating: 9, rewatches: 0 },
+            { name: "Тор", type: "Фильм", status: "Просмотрено", rating: 8, rewatches: 0 },
+            { name: "Мстители", type: "Фильм", status: "Просмотрено", rating: 7, rewatches: 0 },
+            { name: "Железный человек 3", type: "Фильм", status: "Просмотрено", rating: 10, rewatches: 0 },
+            { name: "Тор 2: Царство тьмы", type: "Фильм", status: "Просмотрено", rating: 8, rewatches: 0 },
+            { name: "Первый мститель: Другая война", type: "Фильм", status: "Просмотрено", rating: 9, rewatches: 0 },
+            { name: "Мстители: Эра Альтрона", type: "Фильм", status: "Просмотрено", rating: 10, rewatches: 0 },
+            { name: "Человек-муравей", type: "Фильм", status: "Просмотрено", rating: 8, rewatches: 0 },
+            { name: "Первый мститель: Противостояние", type: "Фильм", status: "Просмотрено", rating: 8, rewatches: 0 },
+            { name: "Доктор Стрэндж", type: "Фильм", status: "Просмотрено", rating: 10, rewatches: 0 },
+            { name: "Человек-паук: Возвращение домой", type: "Фильм", status: "Просмотрено", rating: 7, rewatches: 0 },
+            { name: "Тор: Рагнарёк", type: "Фильм", status: "Просмотрено", rating: 8, rewatches: 0 },
+            { name: "Чёрная пантера", type: "Фильм", status: "Просмотрено", rating: 10, rewatches: 0 },
+            { name: "Мстители: Война бесконечности", type: "Фильм", status: "Просмотрено", rating: 10, rewatches: 0 },
+            { name: "Человек-муравей и Оса", type: "Фильм", status: "Просмотрено", rating: 6, rewatches: 0 },
+            { name: "Мстители: Финал", type: "Фильм", status: "Просмотрено", rating: 8, rewatches: 0 },
+            { name: "Человек-паук: Вдали от дома", type: "Фильм", status: "Просмотрено", rating: 10, rewatches: 0 },
+            { name: "Человек-паук: Нет пути домой", type: "Фильм", status: "Просмотрено", rating: 10, rewatches: 0 },
+            { name: "Доктор Стрэндж: В мультивселенной безумия", type: "Фильм", status: "Просмотрено", rating: 9,
+                rewatches: 0 },
+            { name: "Чёрная пантера: Ваканда навеки", type: "Фильм", status: "Просмотрено", rating: 10, rewatches: 0 },
+            { name: "Тор: Любовь и гром", type: "Фильм", status: "Просмотрено", rating: 9, rewatches: 0 },
+            { name: "Человек-муравей и Оса: Квантомания", type: "Фильм", status: "Просмотрено", rating: 8, rewatches: 0 },
+            { name: "Дэдпул", type: "Фильм", status: "Просмотрено", rating: 7, rewatches: 0 },
+            { name: "Дэдпул 2", type: "Фильм", status: "Просмотрено", rating: 8, rewatches: 0 },
+            { name: "Дэдпул и Росомаха", type: "Фильм", status: "Просмотрено", rating: 6, rewatches: 0 },
+            { name: "Человек-паук: Новый день", type: "Фильм", status: "Просмотрено", rating: 8, rewatches: 0 },
+            // ---------- СЕРИАЛЫ ----------
+            { name: "Флэш", type: "Сериал", status: "Просмотрено", rating: 10, rewatches: 0 },
+            { name: "Локи", type: "Сериал", status: "Просмотрено", rating: 10, rewatches: 0 },
+            // ---------- АНИМЕ ----------
+            { name: "Берсерк", type: "Аниме", status: "Брошено", rating: 0, rewatches: 0 },
+            { name: "Токийский гуль", type: "Аниме", status: "Просмотрено", rating: 10, rewatches: 0 },
+            { name: "Магическая битва", type: "Аниме", status: "Просмотрено", rating: 10, rewatches: 0 },
+            { name: "Повседневная жизнь бессмертного короля", type: "Аниме", status: "Просмотрено", rating: 7,
+                rewatches: 0 },
+            { name: "Реинкарнация безработного", type: "Аниме", status: "В процессе", rating: 0, rewatches: 0 },
+            { name: "Блюлок", type: "Аниме", status: "Просмотрено", rating: 10, rewatches: 0 },
+            { name: "Баскетбол Курокко", type: "Аниме", status: "Просмотрено", rating: 10, rewatches: 0 },
+            { name: "Соло Левелинг", type: "Аниме", status: "Просмотрено", rating: 10, rewatches: 0 },
+            { name: "Восхождение героя щита", type: "Аниме", status: "Брошено", rating: 0, rewatches: 0 },
+            { name: "Хантер х Хантер", type: "Аниме", status: "Брошено", rating: 0, rewatches: 0 },
+            { name: "Клинок, рассекающий демонов", type: "Аниме", status: "В процессе", rating: 8, rewatches: 0 }
+        ];
+
+        async function runBulkImport() {
+            if (isImporting) return;
+            if (!confirm('🔥 Запустить массовый импорт всех твоих фильмов, сериалов и аниме?\n\nБудет подтянуто ~100 записей с постерами из TMDB и Jikan. Это займёт 1–2 минуты.')) return;
+
+            isImporting = true;
+            const btn = document.getElementById('bulkImportBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Импорт...';
+
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toastMsg');
+            const toastProgress = document.getElementById('toastProgress');
+            toast.className = 'toast show';
+
+            const total = MY_FULL_LIST.length;
+            let success = 0;
+            let errors = 0;
+            const newItems = [];
+
+            for (let i = 0; i < total; i++) {
+                const entry = MY_FULL_LIST[i];
+                const pct = Math.round(((i + 1) / total) * 100);
+                toastMsg.textContent = `⏳ ${i+1}/${total}: ${entry.name}`;
+                toastProgress.style.width = pct + '%';
+
+                const isAnime = entry.type === 'Аниме';
+
+                try {
+                    let poster = '';
+                    let foundName = entry.name;
+                    let apiRating = 0;
+
+                    if (isAnime) {
+                        // Jikan
+                        const res = await fetchJikan(entry.name);
+                        if (res) {
+                            poster = res.images?.jpg?.image_url || '';
+                            foundName = res.title || entry.name;
+                            apiRating = res.score ? Math.round(res.score) : 0;
+                            success++;
+                        } else {
+                            errors++;
+                        }
+                    } else {
+                        // TMDB
+                        const res = await fetchTMDB(entry.name, entry.type);
+                        if (res) {
+                            poster = res.poster_path ? `https://image.tmdb.org/t/p/w185${res.poster_path}` : '';
+                            foundName = res.title || res.name || entry.name;
+                            apiRating = res.vote_average ? Math.round(res.vote_average * 10) / 10 : 0;
+                            success++;
+                        } else {
+                            errors++;
+                        }
+                    }
+
+                    newItems.push({
+                        id: Date.now() + i + Math.random(),
+                        name: foundName || entry.name,
+                        type: entry.type,
+                        status: entry.status,
+                        rating: entry.rating || apiRating || 0,
+                        rewatches: entry.rewatches || 0,
+                        poster: poster || '',
+                    });
+
+                } catch (e) {
+                    errors++;
+                    newItems.push({
+                        id: Date.now() + i + Math.random(),
+                        name: entry.name,
+                        type: entry.type,
+                        status: entry.status,
+                        rating: entry.rating || 0,
+                        rewatches: entry.rewatches || 0,
+                        poster: '',
+                    });
+                }
+
+                // Задержка между запросами
+                await new Promise(r => setTimeout(r, isAnime ? 350 : 200));
+            }
+
+            // Сохраняем
+            items = newItems;
+            saveData();
+
+            toastMsg.textContent = `✅ ГОТОВО! Добавлено ${success} с постерами, ${errors} без.`;
+            toastProgress.style.width = '100%';
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-rocket"></i> Импорт';
+            isImporting = false;
+            render();
+        }
+
+        // ---------- TMDB (фильмы/сериалы) ----------
+        async function fetchTMDB(query, type) {
+            const mediaType = type === 'Фильм' ? 'movie' : 'tv';
+            const url =
+                `https://api.themoviedb.org/3/search/${mediaType}?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}&language=ru-RU`;
+            const resp = await fetch(url);
+            if (!resp.ok) return null;
+            const data = await resp.json();
+            if (!data.results || !data.results.length) return null;
+            return data.results[0];
+        }
+
+        // ---------- JIKAN (аниме) ----------
+        async function fetchJikan(query) {
+            const url =
+                `https://api.jikan.moe/v4/anime?q=${encodeURIComponent(query)}&limit=1&sfw=true`;
+            try {
+                const resp = await fetch(url);
+                if (!resp.ok) return null;
+                const data = await resp.json();
+                if (data.data && data.data.length) return data.data[0];
+            } catch (e) { return null; }
+
+            // Пробуем транслит
+            const translitMap = {
+                'Токийский гуль': 'Tokyo Ghoul',
+                'Магическая битва': 'Jujutsu Kaisen',
+                'Блюлок': 'Blue Lock',
+                'Клинок, рассекающий демонов': 'Demon Slayer',
+                'Реинкарнация безработного': 'Mushoku Tensei',
+                'Восхождение героя щита': 'Rising of the Shield Hero',
+                'Хантер х Хантер': 'Hunter x Hunter',
+                'Баскетбол Курокко': 'Kuroko no Basket',
+                'Соло Левелинг': 'Solo Leveling',
+                'Повседневная жизнь бессмертного короля': 'The Daily Life of the Immortal King',
+                'Берсерк': 'Berserk'
+            };
+            const translit = translitMap[query];
+            if (translit) {
+                try {
+                    const url2 =
+                        `https://api.jikan.moe/v4/anime?q=${encodeURIComponent(translit)}&limit=1&sfw=true`;
+                    const resp2 = await fetch(url2);
+                    if (!resp2.ok) return null;
+                    const data2 = await resp2.json();
+                    if (data2.data && data2.data.length) return data2.data[0];
+                } catch (e) { return null; }
+            }
+            return null;
+        }
+
+        // ========================
+        //  TOAST
+        // ========================
+        let toastTimeout;
+
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            const msgEl = document.getElementById('toastMsg');
+            const progEl = document.getElementById('toastProgress');
+            msgEl.textContent = message;
+            progEl.style.width = '0%';
+            toast.className = 'toast show' + (isError ? ' error' : '');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // ========================
+        //  ЗАПУСК
+        // ========================
+        loadData();
+
+        document.getElementById('editModal').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+
+        console.log('🎬 Мой киноархив загружен!');
+        console.log('📦 Всего записей:', items.length);
+        console.log('🔥 Для быстрого импорта нажми кнопку "Импорт" в шапке');
+    </script>
+
+</body>
+</html>
