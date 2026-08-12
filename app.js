@@ -3,20 +3,18 @@
 // ========================
 const TMDB_API_KEY = '40f8044a3992bf1a264badac3ca33f28';
 
-// TMDB теперь требует авторизацию через заголовок Authorization: Bearer
-// (api_key в query-параметрах отключён). На случай старых/нештатных режимов
-// при 401/403 пробуем fallback с api_key в URL.
+// Авторизация TMDB: api_key в query-параметрах (работает с ключом v3).
+// При 401/403 пробуем Bearer-заголовок на случай будущих v4-токенов.
 async function tmdbFetch(path) {
     const base = 'https://api.themoviedb.org/3';
-    const url = base + path;
+    const sep = path.includes('?') ? '&' : '?';
 
-    let resp = await fetch(url, {
-        headers: { Authorization: `Bearer ${TMDB_API_KEY}` }
-    });
+    let resp = await fetch(`${base}${path}${sep}api_key=${TMDB_API_KEY}`);
 
     if (resp.status === 401 || resp.status === 403) {
-        const sep = path.includes('?') ? '&' : '?';
-        resp = await fetch(`${url}${sep}api_key=${TMDB_API_KEY}`);
+        resp = await fetch(base + path, {
+            headers: { Authorization: `Bearer ${TMDB_API_KEY}` }
+        });
     }
     return resp;
 }

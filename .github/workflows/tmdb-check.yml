@@ -1,4 +1,4 @@
-name: TMDB Key Check
+name: TMDB Check
 
 on:
   schedule:
@@ -12,18 +12,28 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - name: Проверить TMDB API-ключ
+      - name: Check TMDB API key
         id: tmdb
         env:
           TMDB_KEY: 40f8044a3992bf1a264badac3ca33f28
         run: |
           HTTP=$(curl -s -o /tmp/tmdb.json -w "%{http_code}" \
-            -H "Authorization: Bearer $TMDB_KEY" \
-            "https://api.themoviedb.org/3/authentication")
+            "https://api.themoviedb.org/3/authentication?api_key=$TMDB_KEY")
           echo "http=$HTTP"
           echo "status=$HTTP" >> "$GITHUB_OUTPUT"
+          if [ "$HTTP" = "200" ]; then echo "key=ok" >> "$GITHUB_OUTPUT"; fi
 
-      - name: Создать issue, если ключ мёртв
+      - name: Check TMDB IPs vs hosts file
+        if: steps.tmdb.outputs.key == 'ok'
+        run: |
+          API_IP=$(getent hosts api.themoviedb.org | awk '{print $1}' | head -n1)
+          IMG_IP=$(getent hosts image.tmdb.org | awk '{print $1}' | head -n1)
+          echo "api=$API_IP img=$IMG_IP"
+          echo "api_ip=$API_IP" >> "$GITHUB_OUTPUT"
+          echo "img_ip=$IMG_IP" >> "$GITHUB_OUTPUT"
+        id: ips
+
+      - name: Open issue if API key broken
         if: steps.tmdb.outputs.status != '200'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -33,11 +43,27 @@ jobs:
             gh issue create \
               --title "TMDB API-ключ не работает ($DATE)" \
               --label "tmdb-key" \
-              --body "Автопроверка $(date -u): запрос к api.themoviedb.org вернул HTTP ${{ steps.tmdb.outputs.status }}.
+              --body "Автопроверка $(date -u): запрос к api.themoviedb.org вернул HTTP ${{ steps.tmdb.outputs.status }}. Исправь ключ в app.js (TMDB_API_KEY)."
+          fi
 
-Ключ в файле app.js (TMDB_API_KEY) больше не принимается TMDB. Нужно:
-1. Зайти на https://www.themoviedb.org/settings/api
-2. Скопировать новый API-ключ (или Read Access Token)
-3. Заменить его в app.js (и в этом workflow, если ключ там указан)
-4. Запушить изменения"
+      - name: Open issue if TMDB IPs changed (hosts file must be updated)
+        if: steps.tmdb.outputs.key == 'ok'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          API_IP: ${{ steps.ips.outputs.api_ip }}
+          IMG_IP: ${{ steps.ips.outputs.img_ip }}
+        run: |
+          API_NEW=$(echo "$API_IP" | grep -c '18.165' || true)
+          IMG_NEW=$(echo "$IMG_IP" | grep -c '138.199' || true)
+          if [ "$API_NEW" = "0" ] || [ "$IMG_NEW" = "0" ]; then
+            DATE=$(date -u +%Y-%m-%d)
+            if ! gh issue list --label "tmdb-ip" --state open --limit 5 | grep -q "tmdb-ip"; then
+              gh issue create \
+                --title "TMDB сменил IP-адреса ($DATE)" \
+                --label "tmdb-ip" \
+                --body "api.themoviedb.org теперь: $API_IP
+image.tmdb.org теперь: $IMG_IP
+
+Нужно обновить записи в C:\Windows\System32\drivers\etc\hosts (файл hosts в Windows)."
+            fi
           fi
