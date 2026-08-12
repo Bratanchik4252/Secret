@@ -27,6 +27,7 @@
                     <button class="icon-btn" id="menuBtn" title="Меню"><i class="fas fa-bars"></i></button>
                     <div class="export-menu" id="mainMenu">
                         <button data-action="achievements"><i class="fas fa-trophy"></i> Достижения</button>
+                        <button data-action="collections"><i class="fas fa-boxes-stacked"></i> Коллекции</button>
                         <button data-action="analytics"><i class="fas fa-chart-column"></i> Аналитика</button>
                         <button data-action="trash"><i class="fas fa-trash-can"></i> Корзина <span class="menu-badge" id="menuTrashCount"></span></button>
                         <button data-action="duplicates"><i class="fas fa-copy"></i> Найти дубликаты</button>
@@ -119,7 +120,6 @@
                 </div>
                 <div class="view-toggle">
                     <button id="viewGrid" class="active" title="Сетка"><i class="fas fa-th-large"></i></button>
-                    <button id="viewList" title="Список"><i class="fas fa-list"></i></button>
                 </div>
             </div>
         </div>
@@ -143,12 +143,6 @@
         <div class="recent-section" id="recentSection" style="display:none;">
             <div class="recent-title"><i class="fas fa-clock-rotate-left"></i> Недавно добавленные</div>
             <div class="recent-row" id="recentRow"></div>
-        </div>
-
-        <!-- КЛАССИКА -->
-        <div class="recent-section classics-section" id="classicsSection" style="display:none;">
-            <div class="recent-title"><i class="fas fa-wand-magic-sparkles"></i> Пополни коллекцию</div>
-            <div class="classics-row" id="classicsRow"></div>
         </div>
 
         <!-- КАРТОЧКИ -->
@@ -249,6 +243,7 @@
                     </div>
                     <div class="detail-watched" id="detailWatched"></div>
                     <div class="detail-watched" id="detailRuntime" style="font-size:12px;opacity:0.85;"></div>
+                    <div class="detail-watched" id="detailEpisodes" style="font-size:12px;opacity:0.85;"></div>
                 </div>
             </div>
             <div class="detail-body">
@@ -382,6 +377,20 @@
             <div class="ach-grid" id="achGrid"></div>
             <div class="modal-actions">
                 <button class="btn-ghost" onclick="closeAchievements()" style="width:100%;">Закрыть</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- КОЛЛЕКЦИИ -->
+    <div class="modal-overlay" id="collectionsModal">
+        <div class="modal" style="max-width:580px;">
+            <div class="modal-head">
+                <h3>🗂️ Коллекции</h3>
+                <button class="modal-close" onclick="closeCollections()"><i class="fas fa-xmark"></i></button>
+            </div>
+            <div id="collectionsBody"></div>
+            <div class="modal-actions">
+                <button class="btn-ghost" onclick="closeCollections()" style="width:100%;">Закрыть</button>
             </div>
         </div>
     </div>

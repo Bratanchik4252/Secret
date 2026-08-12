@@ -24,6 +24,26 @@ async function tmdbFetch(path) {
 // ========================
 //  ПОСТЕРЫ (с fallback через прокси)
 // ========================
+// Кэш обложек в памяти: если картинка грузится через прокси (wsrv.nl),
+// сохраняем её как blob-URL, чтобы при перерисовке интерфейса обложки
+// не перезагружались заново.
+const posterBlobCache = new Map();
+
+async function cachedPosterSrc(url) {
+    if (!url || posterBlobCache.has(url)) return url;
+    try {
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error('bad status');
+        const blob = await resp.blob();
+        const obj = URL.createObjectURL(blob);
+        posterBlobCache.set(url, obj);
+        return obj;
+    } catch (e) {
+        posterBlobCache.set(url, url);
+        return url;
+    }
+}
+
 function posterFallbackHtml(mode, name) {
     if (mode === 'grid') {
         return `<div class="poster-fallback"><i class="fas fa-film"></i><span class="pf-title">${esc(name)}</span></div>`;
@@ -37,6 +57,7 @@ function posterFallbackHtml(mode, name) {
 
 // Запасной путь для картинок: image.tmdb.org может блокироваться сетью,
 // тогда грузим через прокси wsrv.nl, а если и он не смог — плейсхолдер.
+// Удачные загрузки через прокси кэшируются как blob-URL.
 window.posterError = function(img, url, w, mode, name) {
     if (img.dataset.retried) {
         if (mode === 'hero') {
@@ -50,7 +71,8 @@ window.posterError = function(img, url, w, mode, name) {
     }
     img.dataset.retried = '1';
     img.referrerPolicy = 'no-referrer';
-    img.src = 'https://wsrv.nl/?url=' + encodeURIComponent(url) + '&w=' + w;
+    const proxied = 'https://wsrv.nl/?url=' + encodeURIComponent(url) + '&w=' + w;
+    cachedPosterSrc(proxied).then(src => { img.src = src; });
 };
 
 function posterTag(url, alt, mode, name) {
@@ -66,7 +88,6 @@ function posterTag(url, alt, mode, name) {
 const STORAGE_KEY = 'myKinoArchive';
 const VIEW_KEY = 'kinoViewMode';
 const THEME_KEY = 'kinoTheme';
-const BACKFILL_KEY = 'kinoBackfillDone';
 const TRASH_KEY = 'kinoTrash';
 const FOLDERS_KEY = 'kinoFolders';
 const SIZE_KEY = 'kinoCardSize';
@@ -80,7 +101,7 @@ let typeFilter = 'all';
 let statusFilter = 'all';
 let decadeFilter = 'all';
 let sortMode = 'rating-desc';
-let viewMode = localStorage.getItem(VIEW_KEY) || 'grid';
+let viewMode = 'grid';
 let theme = localStorage.getItem(THEME_KEY) || 'dark';
 let cardSize = localStorage.getItem(SIZE_KEY) || 'm';
 let editId = null;
@@ -164,44 +185,183 @@ function genreTagHtml(names, limit) {
     ).join('');
 }
 
-const CLASSICS = [
-    { name: 'Крёстный отец', type: 'Фильм', year: 1972 },
-    { name: 'Криминальное чтиво', type: 'Фильм', year: 1994 },
-    { name: 'Матрица', type: 'Фильм', year: 1999 },
-    { name: 'Начало', type: 'Фильм', year: 2010 },
-    { name: 'Форрест Гамп', type: 'Фильм', year: 1994 },
-    { name: 'Список Шиндлера', type: 'Фильм', year: 1993 },
-    { name: 'Зелёная миля', type: 'Фильм', year: 1999 },
-    { name: 'Гладиатор', type: 'Фильм', year: 2000 },
-    { name: 'Терминатор 2: Судный день', type: 'Фильм', year: 1991 },
-    { name: 'Молчание ягнят', type: 'Фильм', year: 1991 },
-    { name: 'Отступники', type: 'Фильм', year: 2006 },
-    { name: 'Большой куш', type: 'Фильм', year: 2000 },
-    { name: 'Остров проклятых', type: 'Фильм', year: 2010 },
-    { name: 'Достать ножи', type: 'Фильм', year: 2019 },
-    { name: 'Дюна', type: 'Фильм', year: 2021 },
-    { name: 'Аватар', type: 'Фильм', year: 2009 },
-    { name: 'Титаник', type: 'Фильм', year: 1997 },
-    { name: 'Хатико: Самый верный друг', type: 'Фильм', year: 2009 },
-    { name: 'Побег из Шоушенка', type: 'Фильм', year: 1994 },
-    { name: 'Назад в будущее', type: 'Фильм', year: 1985 },
-    { name: 'Индиана Джонс: В поисках утраченного ковчега', type: 'Фильм', year: 1981 },
-    { name: 'Крепкий орешек', type: 'Фильм', year: 1988 },
-    { name: 'Один дома', type: 'Фильм', year: 1990 },
-    { name: 'Гарри Поттер и философский камень', type: 'Фильм', year: 2001 },
-    { name: 'Властелин колец: Братство кольца', type: 'Фильм', year: 2001 },
-    { name: '12 разгневанных мужчин', type: 'Фильм', year: 1957 },
-    { name: 'Драйв', type: 'Фильм', year: 2011 },
-    { name: 'Ла-Ла Ленд', type: 'Фильм', year: 2016 },
-    { name: 'Одержимость', type: 'Фильм', year: 2014 },
-    { name: 'Интерстеллар', type: 'Фильм', year: 2014 },
-    { name: 'Унесённые призраками', type: 'Аниме', year: 2001 },
-    { name: 'Мой сосед Тоторо', type: 'Аниме', year: 1988 },
-    { name: 'Во все тяжкие', type: 'Сериал', year: 2008 },
-    { name: 'Игра престолов', type: 'Сериал', year: 2011 },
-    { name: 'Шерлок', type: 'Сериал', year: 2010 },
-    { name: 'Друзья', type: 'Сериал', year: 1994 },
-    { name: 'Чернобыль', type: 'Сериал', year: 2019 }
+const COLLECTIONS = [
+    {
+        name: 'Гарри Поттер', icon: '🪄',
+        films: [
+            { name: 'Гарри Поттер и философский камень', type: 'Фильм', year: 2001 },
+            { name: 'Гарри Поттер и Тайная комната', type: 'Фильм', year: 2002 },
+            { name: 'Гарри Поттер и узник Азкабана', type: 'Фильм', year: 2004 },
+            { name: 'Гарри Поттер и Кубок огня', type: 'Фильм', year: 2005 },
+            { name: 'Гарри Поттер и Орден Феникса', type: 'Фильм', year: 2007 },
+            { name: 'Гарри Поттер и Принц-полукровка', type: 'Фильм', year: 2009 },
+            { name: 'Гарри Поттер и Дары Смерти: Часть 1', type: 'Фильм', year: 2010 },
+            { name: 'Гарри Поттер и Дары Смерти: Часть 2', type: 'Фильм', year: 2011 }
+        ]
+    },
+    {
+        name: 'Марвел (MCU)', icon: '🕷️',
+        films: [
+            { name: 'Железный человек', type: 'Фильм', year: 2008 },
+            { name: 'Невероятный Халк', type: 'Фильм', year: 2008 },
+            { name: 'Железный человек 2', type: 'Фильм', year: 2010 },
+            { name: 'Тор', type: 'Фильм', year: 2011 },
+            { name: 'Первый мститель', type: 'Фильм', year: 2011 },
+            { name: 'Мстители', type: 'Фильм', year: 2012 },
+            { name: 'Железный человек 3', type: 'Фильм', year: 2013 },
+            { name: 'Тор 2: Царство тьмы', type: 'Фильм', year: 2013 },
+            { name: 'Первый мститель: Другая война', type: 'Фильм', year: 2014 },
+            { name: 'Стражи Галактики', type: 'Фильм', year: 2014 },
+            { name: 'Мстители: Эра Альтрона', type: 'Фильм', year: 2015 },
+            { name: 'Человек-муравей', type: 'Фильм', year: 2015 },
+            { name: 'Первый мститель: Противостояние', type: 'Фильм', year: 2016 },
+            { name: 'Доктор Стрэндж', type: 'Фильм', year: 2016 },
+            { name: 'Стражи Галактики. Часть 2', type: 'Фильм', year: 2017 },
+            { name: 'Человек-паук: Возвращение домой', type: 'Фильм', year: 2017 },
+            { name: 'Тор: Рагнарёк', type: 'Фильм', year: 2017 },
+            { name: 'Чёрная Пантера', type: 'Фильм', year: 2018 },
+            { name: 'Мстители: Война бесконечности', type: 'Фильм', year: 2018 },
+            { name: 'Человек-муравей и Оса', type: 'Фильм', year: 2018 },
+            { name: 'Капитан Марвел', type: 'Фильм', year: 2019 },
+            { name: 'Мстители: Финал', type: 'Фильм', year: 2019 },
+            { name: 'Человек-паук: Вдали от дома', type: 'Фильм', year: 2019 },
+            { name: 'Чёрная вдова', type: 'Фильм', year: 2021 },
+            { name: 'Шан-Чи и Легенда Десяти Колец', type: 'Фильм', year: 2021 },
+            { name: 'Вечные', type: 'Фильм', year: 2021 },
+            { name: 'Человек-паук: Нет пути домой', type: 'Фильм', year: 2021 },
+            { name: 'Доктор Стрэндж: В мультивселенной безумия', type: 'Фильм', year: 2022 },
+            { name: 'Тор: Любовь и гром', type: 'Фильм', year: 2022 },
+            { name: 'Чёрная Пантера: Ваканда навеки', type: 'Фильм', year: 2022 },
+            { name: 'Человек-муравей и Оса: Квантомания', type: 'Фильм', year: 2023 },
+            { name: 'Стражи Галактики. Часть 3', type: 'Фильм', year: 2023 }
+        ]
+    },
+    {
+        name: 'Трансформеры', icon: '🤖',
+        films: [
+            { name: 'Трансформеры', type: 'Фильм', year: 2007 },
+            { name: 'Трансформеры 2: Месть Падших', type: 'Фильм', year: 2009 },
+            { name: 'Трансформеры 3: Тёмная сторона Луны', type: 'Фильм', year: 2011 },
+            { name: 'Трансформеры 4: Эпоха истребления', type: 'Фильм', year: 2014 },
+            { name: 'Трансформеры 5: Последний рыцарь', type: 'Фильм', year: 2017 }
+        ]
+    },
+    {
+        name: 'Кунг-фу Панда', icon: '🐼',
+        films: [
+            { name: 'Кунг-фу Панда', type: 'Фильм', year: 2008 },
+            { name: 'Кунг-фу Панда 2', type: 'Фильм', year: 2011 },
+            { name: 'Кунг-фу Панда 3', type: 'Фильм', year: 2016 },
+            { name: 'Кунг-фу Панда 4', type: 'Фильм', year: 2024 }
+        ]
+    },
+    {
+        name: 'Бэтмен', icon: '🦇',
+        films: [
+            { name: 'Бэтмен: Начало', type: 'Фильм', year: 2005 },
+            { name: 'Тёмный рыцарь', type: 'Фильм', year: 2008 },
+            { name: 'Тёмный рыцарь: Возрождение легенды', type: 'Фильм', year: 2012 },
+            { name: 'Бэтмен', type: 'Фильм', year: 2022 }
+        ]
+    },
+    {
+        name: 'Бегущий в лабиринте', icon: '🌀',
+        films: [
+            { name: 'Бегущий в лабиринте', type: 'Фильм', year: 2014 },
+            { name: 'Бегущий в лабиринте: Испытание огнём', type: 'Фильм', year: 2015 },
+            { name: 'Бегущий в лабиринте: Лекарство от смерти', type: 'Фильм', year: 2018 }
+        ]
+    },
+    {
+        name: 'Дэдпул', icon: '🔫',
+        films: [
+            { name: 'Дэдпул', type: 'Фильм', year: 2016 },
+            { name: 'Дэдпул 2', type: 'Фильм', year: 2018 },
+            { name: 'Дэдпул и Росомаха', type: 'Фильм', year: 2024 }
+        ]
+    },
+    {
+        name: 'Властелин колец', icon: '💍',
+        films: [
+            { name: 'Властелин колец: Братство кольца', type: 'Фильм', year: 2001 },
+            { name: 'Властелин колец: Две крепости', type: 'Фильм', year: 2002 },
+            { name: 'Властелин колец: Возвращение короля', type: 'Фильм', year: 2003 }
+        ]
+    },
+    {
+        name: 'Хоббит', icon: '⚔️',
+        films: [
+            { name: 'Хоббит: Нежданное путешествие', type: 'Фильм', year: 2012 },
+            { name: 'Хоббит: Пустошь Смауга', type: 'Фильм', year: 2013 },
+            { name: 'Хоббит: Битва пяти воинств', type: 'Фильм', year: 2014 }
+        ]
+    },
+    {
+        name: 'Пираты Карибского моря', icon: '🏴‍☠️',
+        films: [
+            { name: 'Пираты Карибского моря: Проклятие Чёрной жемчужины', type: 'Фильм', year: 2003 },
+            { name: 'Пираты Карибского моря: Сундук мертвеца', type: 'Фильм', year: 2006 },
+            { name: 'Пираты Карибского моря: На краю света', type: 'Фильм', year: 2007 },
+            { name: 'Пираты Карибского моря: На странных берегах', type: 'Фильм', year: 2011 },
+            { name: 'Пираты Карибского моря: Мертвецы не рассказывают сказки', type: 'Фильм', year: 2017 }
+        ]
+    },
+    {
+        name: 'Форсаж', icon: '🏎️',
+        films: [
+            { name: 'Форсаж', type: 'Фильм', year: 2001 },
+            { name: 'Двойной форсаж', type: 'Фильм', year: 2003 },
+            { name: 'Тройной форсаж: Токийский дрифт', type: 'Фильм', year: 2006 },
+            { name: 'Форсаж 4', type: 'Фильм', year: 2009 },
+            { name: 'Форсаж 5', type: 'Фильм', year: 2011 },
+            { name: 'Форсаж 6', type: 'Фильм', year: 2013 },
+            { name: 'Форсаж 7', type: 'Фильм', year: 2015 },
+            { name: 'Форсаж 8', type: 'Фильм', year: 2017 },
+            { name: 'Форсаж: Хоббс и Шоу', type: 'Фильм', year: 2019 },
+            { name: 'Форсаж 9', type: 'Фильм', year: 2021 }
+        ]
+    },
+    {
+        name: 'Звёздные войны', icon: '⚔️',
+        films: [
+            { name: 'Звёздные войны: Скрытая угроза', type: 'Фильм', year: 1999 },
+            { name: 'Звёздные войны: Атака клонов', type: 'Фильм', year: 2002 },
+            { name: 'Звёздные войны: Месть ситхов', type: 'Фильм', year: 2005 },
+            { name: 'Изгой-один: Звёздные войны. Истории', type: 'Фильм', year: 2016 },
+            { name: 'Звёздные войны: Пробуждение силы', type: 'Фильм', year: 2015 },
+            { name: 'Звёздные войны: Последние джедаи', type: 'Фильм', year: 2017 },
+            { name: 'Звёздные войны: Скайуокер. Восход', type: 'Фильм', year: 2019 }
+        ]
+    },
+    {
+        name: 'Дюна', icon: '🏜️',
+        films: [
+            { name: 'Дюна', type: 'Фильм', year: 2021 },
+            { name: 'Дюна: Часть вторая', type: 'Фильм', year: 2024 }
+        ]
+    },
+    {
+        name: 'Индиана Джонс', icon: '🤠',
+        films: [
+            { name: 'Индиана Джонс: В поисках утраченного ковчега', type: 'Фильм', year: 1981 },
+            { name: 'Индиана Джонс и храм судьбы', type: 'Фильм', year: 1984 },
+            { name: 'Индиана Джонс и последний крестовый поход', type: 'Фильм', year: 1989 },
+            { name: 'Индиана Джонс и Королевство хрустального черепа', type: 'Фильм', year: 2008 },
+            { name: 'Индиана Джонс и колесо судьбы', type: 'Фильм', year: 2023 }
+        ]
+    },
+    {
+        name: 'Аниме-хиты', icon: '🎌',
+        films: [
+            { name: 'Токийский Гуль', type: 'Аниме', year: 2014 },
+            { name: 'Магическая битва', type: 'Аниме', year: 2020 },
+            { name: 'Блюлок', type: 'Аниме', year: 2022 },
+            { name: 'Баскетбол Курокко', type: 'Аниме', year: 2012 },
+            { name: 'Соло Левелинг', type: 'Аниме', year: 2024 },
+            { name: 'Реинкарнация безработного', type: 'Аниме', year: 2021 },
+            { name: 'Атака титанов', type: 'Аниме', year: 2013 }
+        ]
+    }
 ];
 
 // ========================
@@ -218,6 +378,8 @@ function normalize(item) {
     if (item.overview === undefined) item.overview = '';
     if (item.runtime === undefined) item.runtime = null;
     if (item.important === undefined) item.important = false;
+    if (item.tmdbId === undefined) item.tmdbId = null;
+    if (item.tmdbType === undefined) item.tmdbType = null;
     return item;
 }
 
@@ -240,13 +402,15 @@ function loadData() {
     render();
     purgeTrash();
     weeklySummary();
+    trackAchievementUnlocks();
 }
 
-function saveData() {
+function saveData(silent) {
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
     } catch (e) { /* ignore */ }
-    render();
+    if (silent) renderStats();
+    else render();
 }
 
 // ========================
@@ -394,7 +558,6 @@ function render() {
     $('#sizeL').classList.toggle('active', cardSize === 'l');
     $('#menuTrashCount').textContent = trash.length ? trash.length : '';
     renderFolders();
-    renderClassics();
     renderRecent();
 
     const oldestId = items.length
@@ -407,103 +570,82 @@ function render() {
     }
     emptyEl.style.display = 'none';
 
-    if (viewMode === 'grid') {
-        cardsEl.innerHTML = filtered.map(item => {
-            const typeBadge = TYPE_BADGES[item.type] || '';
-            const statusBadge = STATUS_BADGES[item.status] || '';
-            const yearBadge = item.year ? `<span class="badge year">${item.year}</span>` : '';
-            const tmdbText = item.tmdbRating ? `<span class="gtmdb">TMDB ⭐ ${item.tmdbRating}</span>` : '';
-            const rewatch = item.rewatches > 0
-                ? `<span class="grewatch"><i class="fas fa-rotate-right"></i> ×${item.rewatches}</span>` : '';
-            const quickBtn = item.status === 'В процессе'
-                ? `<button class="act-finish" title="Посмотрел!"><i class="fas fa-check"></i></button>
-                   <button class="act-pause" title="На паузу"><i class="fas fa-pause"></i></button>`
-                : item.status === 'На паузе'
-                    ? `<button class="act-start" title="Продолжить"><i class="fas fa-play"></i></button>
-                       <button class="act-finish" title="Посмотрел!"><i class="fas fa-check"></i></button>`
-                    : item.status === 'Буду смотреть'
-                        ? `<button class="act-start" title="Начать смотреть"><i class="fas fa-play"></i></button>` : '';
-            const rewatchBtn = item.status === 'Просмотрено'
-                ? `<button class="act-rewatch" title="+1 пересмотр"><i class="fas fa-rotate-right"></i></button>` : '';
-            const starBtn = `<button class="act-star" title="Важное"><i class="${item.important ? 'fas' : 'far'} fa-star"></i></button>`;
-            const cornerStar = item.important ? '<div class="corner-star"><i class="fas fa-star"></i></div>' : '';
-            const cornerOld = item.id === oldestId
-                ? '<div class="corner-old" title="Хранитель истории — самая старая запись"><i class="fas fa-landmark"></i></div>' : '';
-            const tintColor = ratingMeta(item.rating).color;
-            const genreTags = item.genres && item.genres.length
-                ? `<div class="genre-tags">${genreTagHtml(item.genres, 2)}</div>` : '';
-            return `
-                <div class="gcard" data-id="${item.id}" data-action="open" ${dnd ? 'draggable="true"' : ''}>
-                    <div class="poster-wrap" style="--tint:${tintColor}">
-                        ${posterHtml(item, 'grid')}
-                        ${cornerStar}${cornerOld}
-                        ${ratingRingHtml(item.rating)}
-                        <div class="gcard-actions" data-actions>
-                            ${quickBtn}
-                            ${rewatchBtn}
-                            ${starBtn}
-                            <button class="act-edit" title="Редактировать"><i class="fas fa-pen"></i></button>
-                            <button class="act-delete" title="Удалить"><i class="fas fa-trash"></i></button>
-                        </div>
-                    </div>
-                    <div class="gcard-body">
-                        <div class="gtitle">${esc(item.name)}</div>
-                        <div class="gmeta">
-                            <span class="badge ${typeBadge}">${TYPE_ICONS[item.type] || ''} ${esc(item.type || '?')}</span>
-                            <span class="badge ${statusBadge}">${STATUS_ICONS[item.status] || ''} ${esc(item.status || '?')}</span>
-                            ${yearBadge}
-                        </div>
-                        ${progressHtml(item)}
-                        ${genreTags}${rewatch}${tmdbText}
-                    </div>
-                </div>`;
-        }).join('');
-    } else {
-        cardsEl.innerHTML = filtered.map(item => {
-            const typeBadge = TYPE_BADGES[item.type] || '';
-            const statusBadge = STATUS_BADGES[item.status] || '';
-            const yearBadge = item.year ? `<span class="badge year">${item.year}</span>` : '';
-            const tmdbText = item.tmdbRating ? `<span>TMDB ⭐ ${item.tmdbRating}</span>` : '';
-            const rewatch = item.rewatches > 0 ? `<span>🔄 ×${item.rewatches}</span>` : '';
-            const quickBtn = item.status === 'В процессе'
-                ? `<button class="act-finish" title="Посмотрел!"><i class="fas fa-check"></i></button>
-                   <button class="act-pause" title="На паузу"><i class="fas fa-pause"></i></button>`
-                : item.status === 'На паузе'
-                    ? `<button class="act-start" title="Продолжить"><i class="fas fa-play"></i></button>
-                       <button class="act-finish" title="Посмотрел!"><i class="fas fa-check"></i></button>`
-                    : item.status === 'Буду смотреть'
-                        ? `<button class="act-start" title="Начать смотреть"><i class="fas fa-play"></i></button>` : '';
-            const rewatchBtn = item.status === 'Просмотрено'
-                ? `<button class="act-rewatch" title="+1 пересмотр"><i class="fas fa-rotate-right"></i></button>` : '';
-            const starBtn = `<button class="act-star" title="Важное"><i class="${item.important ? 'fas' : 'far'} fa-star"></i></button>`;
-            const watchingProgress = (item.status === 'В процессе' || item.status === 'На паузе') &&
-                (item.type === 'Сериал' || item.type === 'Аниме')
-                ? `<span>${item.watchedEpisodes || 0}/${item.totalEpisodes || '?'} серий</span>` : '';
-            return `
-                <div class="list-item" data-id="${item.id}" data-action="open" ${dnd ? 'draggable="true"' : ''}>
-                    ${posterHtml(item, 'list')}
-                    <div class="l-info">
-                        <div class="l-title">${item.important ? '<span class="l-important" title="Важное">⭐</span> ' : ''}${esc(item.name)}</div>
-                        <div class="l-meta">
-                            <span class="badge ${typeBadge}">${esc(item.type || '?')}</span>
-                            <span class="badge ${statusBadge}">${esc(item.status || '?')}</span>
-                            ${yearBadge}
-                            ${watchingProgress}
-                            ${rewatch}
-                            ${tmdbText}
-                        </div>
-                    </div>
-                    ${ratingBadgeHtml(item.rating)}
-                    <div class="l-actions">
-                        ${quickBtn}
-                        ${rewatchBtn}
-                        ${starBtn}
-                        <button class="act-edit" title="Редактировать"><i class="fas fa-pen"></i></button>
-                        <button class="act-delete" title="Удалить"><i class="fas fa-trash"></i></button>
-                    </div>
-                </div>`;
-        }).join('');
-    }
+    cardsEl.innerHTML = filtered.map(item => buildGridCard(item, oldestId)).join('');
+}
+
+function buildCardActions(item) {
+    const quickBtn = item.status === 'В процессе'
+        ? `<button class="act-finish" title="Посмотрел!"><i class="fas fa-check"></i></button>
+           <button class="act-pause" title="На паузу"><i class="fas fa-pause"></i></button>`
+        : item.status === 'На паузе'
+            ? `<button class="act-start" title="Продолжить"><i class="fas fa-play"></i></button>
+               <button class="act-finish" title="Посмотрел!"><i class="fas fa-check"></i></button>`
+            : item.status === 'Буду смотреть'
+                ? `<button class="act-start" title="Начать смотреть"><i class="fas fa-play"></i></button>` : '';
+    const rewatchBtn = item.status === 'Просмотрено'
+        ? `<button class="act-rewatch" title="+1 пересмотр"><i class="fas fa-rotate-right"></i></button>` : '';
+    const starBtn = `<button class="act-star" title="Важное"><i class="${item.important ? 'fas' : 'far'} fa-star"></i></button>`;
+    return `<div class="gcard-actions" data-actions>
+        ${quickBtn}
+        ${rewatchBtn}
+        ${starBtn}
+        <button class="act-edit" title="Редактировать"><i class="fas fa-pen"></i></button>
+        <button class="act-delete" title="Удалить"><i class="fas fa-trash"></i></button>
+    </div>`;
+}
+
+function buildCardBody(item) {
+    const typeBadge = TYPE_BADGES[item.type] || '';
+    const statusBadge = STATUS_BADGES[item.status] || '';
+    const yearBadge = item.year ? `<span class="badge year">${item.year}</span>` : '';
+    const tmdbText = item.tmdbRating ? `<span class="gtmdb">TMDB ⭐ ${item.tmdbRating}</span>` : '';
+    const rewatch = item.rewatches > 0
+        ? `<span class="grewatch"><i class="fas fa-rotate-right"></i> ×${item.rewatches}</span>` : '';
+    const genreTags = item.genres && item.genres.length
+        ? `<div class="genre-tags">${genreTagHtml(item.genres, 2)}</div>` : '';
+    return `<div class="gcard-body">
+        <div class="gtitle">${esc(item.name)}</div>
+        <div class="gmeta">
+            <span class="badge ${typeBadge}">${TYPE_ICONS[item.type] || ''} ${esc(item.type || '?')}</span>
+            <span class="badge ${statusBadge}">${STATUS_ICONS[item.status] || ''} ${esc(item.status || '?')}</span>
+            ${yearBadge}
+        </div>
+        ${progressHtml(item)}
+        ${genreTags}${rewatch}${tmdbText}
+    </div>`;
+}
+
+function buildGridCard(item, oldestId) {
+    const cornerStar = item.important ? '<div class="corner-star"><i class="fas fa-star"></i></div>' : '';
+    const cornerOld = item.id === oldestId
+        ? '<div class="corner-old" title="Хранитель истории — самая старая запись"><i class="fas fa-landmark"></i></div>' : '';
+    const dnd = sortMode === 'manual';
+    return `
+        <div class="gcard" data-id="${item.id}" data-action="open" ${dnd ? 'draggable="true"' : ''}>
+            <div class="poster-wrap" style="--tint:${ratingMeta(item.rating).color}">
+                ${posterHtml(item, 'grid')}
+                ${cornerStar}${cornerOld}
+                ${ratingRingHtml(item.rating)}
+                ${buildCardActions(item)}
+            </div>
+            ${buildCardBody(item)}
+        </div>`;
+}
+
+function updateCardInPlace(id) {
+    const item = findItem(id);
+    if (!item) return;
+    const card = document.querySelector(`#cards .gcard[data-id="${id}"]`);
+    if (!card) return;
+    const actionsEl = card.querySelector('.gcard-actions');
+    if (actionsEl) actionsEl.outerHTML = buildCardActions(item);
+    const ringEl = card.querySelector('.rating-ring');
+    if (ringEl) ringEl.outerHTML = ratingRingHtml(item.rating);
+    const starEl = card.querySelector('.corner-star');
+    if (starEl) starEl.outerHTML = item.important ? '<div class="corner-star"><i class="fas fa-star"></i></div>' : '';
+    const bodyEl = card.querySelector('.gcard-body');
+    if (bodyEl) bodyEl.outerHTML = buildCardBody(item);
+    renderStats();
 }
 
 // ========================
@@ -580,7 +722,7 @@ function findItem(id) {
     return items.find(i => i.id == id);
 }
 
-function addItem(name, type, status, rating, rewatches, poster, watchedEpisodes, totalEpisodes, watchedAt, important, silent) {
+function addItem(name, type, status, rating, rewatches, poster, watchedEpisodes, totalEpisodes, watchedAt, important, silent, tmdbId, tmdbType) {
     const exists = items.some(item =>
         item.name.toLowerCase() === name.toLowerCase() && item.type === type);
     if (exists) {
@@ -604,7 +746,9 @@ function addItem(name, type, status, rating, rewatches, poster, watchedEpisodes,
         genres: [],
         overview: '',
         runtime: null,
-        important: !!important
+        important: !!important,
+        tmdbId: tmdbId != null ? tmdbId : null,
+        tmdbType: tmdbType || null
     });
     saveData();
     if (!silent) showToast('✅ Добавлено!');
@@ -638,7 +782,8 @@ function bumpRewatch(id) {
     if (!item) return;
     showConfirm(`«${item.name}» — добавить пересмотр?`, () => {
         item.rewatches = (item.rewatches || 0) + 1;
-        saveData();
+        saveData(true);
+        updateCardInPlace(id);
         showToast(`🔄 «${item.name}» — ${item.rewatches} ${plural(item.rewatches, 'пересмотр', 'пересмотра', 'пересмотров')}`);
     });
 }
@@ -648,7 +793,8 @@ function markWatched(id) {
     if (!item) return;
     item.status = 'Просмотрено';
     if (!item.watchedAt) item.watchedAt = todayISO();
-    saveData();
+    saveData(true);
+    updateCardInPlace(id);
     showToast(`✅ «${item.name}» — просмотрено!`);
 }
 
@@ -656,7 +802,8 @@ function startWatching(id) {
     const item = findItem(id);
     if (!item) return;
     item.status = 'В процессе';
-    saveData();
+    saveData(true);
+    updateCardInPlace(id);
     showToast(`⏳ Начал смотреть «${item.name}»`);
 }
 
@@ -664,7 +811,8 @@ function pauseItem(id) {
     const item = findItem(id);
     if (!item) return;
     item.status = 'На паузе';
-    saveData();
+    saveData(true);
+    updateCardInPlace(id);
     showToast(`⏸️ «${item.name}» — на паузе`);
 }
 
@@ -672,7 +820,8 @@ function toggleImportant(id) {
     const item = findItem(id);
     if (!item) return;
     item.important = !item.important;
-    saveData();
+    saveData(true);
+    updateCardInPlace(id);
     showToast(item.important ? `⭐ «${item.name}» — в важном!` : `«${item.name}» больше не важное`);
 }
 
@@ -919,7 +1068,8 @@ async function searchTMDB() {
 
             return `
                 <div class="search-result-item" data-result-name="${esc(title)}" data-result-type="${mediaType}"
-                     data-result-rating="${rating}" data-result-poster="${esc(poster)}" data-result-year="${year}">
+                     data-result-rating="${rating}" data-result-poster="${esc(poster)}" data-result-year="${year}"
+                     data-result-id="${item.id}" data-result-media="${item.media_type}">
                     ${poster ? posterTag(poster, title, 'search') :
                         '<div class="sr-fallback"><i class="fas fa-film"></i></div>'}
                     <div class="info">
@@ -944,14 +1094,14 @@ $('#searchResults').addEventListener('click', function(e) {
     if (e.target.closest('.add-btn')) return;
     const row = e.target.closest('[data-result-name]');
     if (!row) return;
-    const { resultName: name, resultType: type, resultRating: rating, resultPoster: poster, resultYear: year } = row.dataset;
+    const { resultName: name, resultType: type, resultRating: rating, resultPoster: poster, resultYear: year, resultId: tmdbId, resultMedia: mediaType } = row.dataset;
     const exists = items.some(i =>
         i.name.toLowerCase() === name.toLowerCase() && i.type === type);
     if (exists) {
         showToast('⚠️ Уже в списке!', true);
         return;
     }
-    const added = addItem(name, type, 'Просмотрено', parseFloat(rating) || 0, 0, poster, 0, 0);
+    const added = addItem(name, type, 'Просмотрено', parseFloat(rating) || 0, 0, poster, 0, 0, '', false, false, parseInt(tmdbId) || null, mediaType);
     if (added) {
         const item = items[items.length - 1];
         if (year && !isNaN(parseInt(year, 10))) item.year = parseInt(year, 10);
@@ -1002,14 +1152,15 @@ function openDetail(id) {
     $('#detailType').textContent = item.type;
     $('#detailWatched').textContent = item.watchedAt
         ? `📅 Просмотрено: ${formatDate(item.watchedAt)}` : '';
-    $('#detailRuntime').textContent = item.runtime
-        ? `⏱️ ${Math.floor(item.runtime / 60)} ч ${item.runtime % 60} мин` : '';
+    $('#detailRuntime').textContent = formatRuntime(item.runtime, item.type);
+    $('#detailEpisodes').textContent = item.type !== 'Фильм'
+        ? `📺 ${item.watchedEpisodes || 0}${item.totalEpisodes ? ' / ' + item.totalEpisodes : ''} серий` : '';
     $('#detailImportantBtn').innerHTML = item.important
         ? '<i class="fas fa-star"></i> В избранном'
         : '<i class="far fa-star"></i> В избранное';
     $('#detailModal').classList.add('show');
 
-    fetchTMDBDetail(item.name).then(detail => {
+    fetchTMDBDetail(item).then(detail => {
         if (detail.overview) {
             $('#detailOverview').textContent = detail.overview;
         } else {
@@ -1023,7 +1174,10 @@ function openDetail(id) {
             $('#detailTmdbr').textContent = detail.rating;
         }
         if (detail.runtime) {
-            $('#detailRuntime').textContent = `⏱️ ${Math.floor(detail.runtime / 60)} ч ${detail.runtime % 60} мин`;
+            $('#detailRuntime').textContent = formatRuntime(detail.runtime, item.type);
+        }
+        if (detail.episodes && item.type !== 'Фильм') {
+            $('#detailEpisodes').textContent = `📺 ${item.watchedEpisodes || 0} / ${detail.episodes} серий`;
         }
 
         let changed = false;
@@ -1035,7 +1189,16 @@ function openDetail(id) {
         }
         if (!item.overview && detail.overview) { item.overview = detail.overview; changed = true; }
         if (item.runtime === null && detail.runtime) { item.runtime = detail.runtime; changed = true; }
-        if (changed) saveData();
+        if (item.tmdbId == null && detail.tmdbId) {
+            item.tmdbId = detail.tmdbId;
+            item.tmdbType = detail.tmdbType || (item.type === 'Фильм' ? 'movie' : 'tv');
+            changed = true;
+        }
+        if (item.type !== 'Фильм' && !item.totalEpisodes && detail.episodes) {
+            item.totalEpisodes = detail.episodes;
+            changed = true;
+        }
+        if (changed) saveData(true);
 
         if (detail.genres && detail.genres.length) {
             $('#detailGenres').innerHTML = detail.genres
@@ -1074,52 +1237,73 @@ function toggleDetailImportant() {
         : '<i class="far fa-star"></i> В избранное';
 }
 
-async function fetchTMDBDetail(name) {
-    const resp = await tmdbFetch(`/search/multi?query=${encodeURIComponent(name)}&language=ru-RU`);
-    if (!resp.ok) throw new Error('TMDB error');
-    const data = await resp.json();
-    if (!data.results || !data.results.length) return {};
+function formatRuntime(min, type) {
+    if (!min) return '';
+    if (type === 'Фильм') return `⏱️ ${Math.floor(min / 60)} ч ${min % 60} мин`;
+    return `⏱️ ~${Math.floor(min / 60)} ч ${min % 60} мин / серия`;
+}
 
-    const first = data.results[0];
-    const mediaType = first.media_type === 'movie' ? 'movie' : 'tv';
-    const year = (first.release_date || first.first_air_date || '').slice(0, 4);
+async function fetchTMDBDetail(item) {
+    if (item.tmdbId === 0) return {};
 
-    const detail = {
-        overview: first.overview || '',
-        year,
-        rating: first.vote_average ? Math.round(first.vote_average * 10) / 10 : null,
-        genres: first.genre_ids || [],
-        runtime: first.runtime || null,
-        similar: []
-    };
+    let tmdbId = item.tmdbId;
+    let tmdbType = item.tmdbType;
+    let first = null;
 
-    if (detail.genres.length) {
-        try {
-            const genreMap = await fetchGenreMap();
-            detail.genres = detail.genres.map(id => ({ name: genreMap[id] || 'Жанр' }));
-        } catch (e) { /* ignore */ }
-    }
-
-    if (!detail.runtime) {
-        try {
-            const dResp = await tmdbFetch(`/${mediaType}/${first.id}?language=ru-RU`);
-            if (dResp.ok) {
-                const d = await dResp.json();
-                detail.runtime = mediaType === 'movie'
-                    ? (d.runtime || null)
-                    : ((d.episode_run_time && d.episode_run_time[0]) || null);
-            }
-        } catch (e) { /* ignore */ }
+    if (tmdbId == null) {
+        const resp = await tmdbFetch(`/search/multi?query=${encodeURIComponent(item.name)}&language=ru-RU`);
+        if (!resp.ok) throw new Error('TMDB error');
+        const data = await resp.json();
+        if (!data.results || !data.results.length) return {};
+        const wantMovie = item.type === 'Фильм';
+        const exact = data.results.filter(r => (r.title || r.name || '').toLowerCase() === item.name.toLowerCase());
+        first = exact.find(r => (r.media_type === 'movie') === wantMovie)
+            || exact[0]
+            || data.results.find(r => (r.media_type === 'movie') === wantMovie)
+            || data.results[0];
+        tmdbId = first.id;
+        tmdbType = first.media_type === 'movie' ? 'movie' : 'tv';
     }
 
     try {
-        const similarResp = await tmdbFetch(`/${mediaType}/${first.id}/similar?language=ru-RU`);
-        if (similarResp.ok) {
-            const similarData = await similarResp.json();
-            detail.similar = similarData.results || [];
+        const dResp = await tmdbFetch(`/${tmdbType}/${tmdbId}?language=ru-RU&append_to_response=similar`);
+        if (dResp.ok) {
+            const d = await dResp.json();
+            return {
+                overview: d.overview || '',
+                year: (d.release_date || d.first_air_date || '').slice(0, 4),
+                rating: d.vote_average ? Math.round(d.vote_average * 10) / 10 : null,
+                genres: (d.genres || []).map(g => ({ name: g.name })).filter(g => g.name),
+                runtime: tmdbType === 'movie'
+                    ? (d.runtime || null)
+                    : ((d.episode_run_time && d.episode_run_time[0]) || null),
+                episodes: tmdbType === 'movie' ? null : (d.number_of_episodes || null),
+                similar: (d.similar && d.similar.results) || [],
+                tmdbId,
+                tmdbType
+            };
         }
     } catch (e) { /* ignore */ }
 
+    if (!first) return {};
+
+    const detail = {
+        overview: first.overview || '',
+        year: (first.release_date || first.first_air_date || '').slice(0, 4),
+        rating: first.vote_average ? Math.round(first.vote_average * 10) / 10 : null,
+        genres: [],
+        runtime: first.runtime || null,
+        episodes: null,
+        similar: [],
+        tmdbId,
+        tmdbType
+    };
+    if (first.genre_ids && first.genre_ids.length) {
+        try {
+            const genreMap = await fetchGenreMap();
+            detail.genres = first.genre_ids.map(id => ({ name: genreMap[id] })).filter(g => g.name);
+        } catch (e) { /* ignore */ }
+    }
     return detail;
 }
 
@@ -1153,11 +1337,12 @@ $('#detailSimilar').addEventListener('click', async function(e) {
             const type = first.media_type === 'tv' ? 'Сериал' : 'Фильм';
             const poster = first.poster_path ? `https://image.tmdb.org/t/p/w185${first.poster_path}` : '';
             const rating = first.vote_average ? Math.round(first.vote_average * 10) / 10 : 0;
-            if (addItem(title, type, 'Буду смотреть', rating, 0, poster, 0, 0)) {
+            if (addItem(title, type, 'Буду смотреть', rating, 0, poster, 0, 0, '', false, false, first.id, first.media_type === 'movie' ? 'movie' : 'tv')) {
                 const newItem = items[items.length - 1];
                 const y = parseInt((first.release_date || first.first_air_date || '').slice(0, 4), 10);
                 if (!isNaN(y)) newItem.year = y;
                 if (first.runtime) newItem.runtime = first.runtime;
+                if (first.media_type === 'tv' && first.number_of_episodes) newItem.totalEpisodes = first.number_of_episodes;
                 openDetail(newItem.id);
             }
         } else {
@@ -1191,7 +1376,8 @@ function setRate(val) {
     const item = findItem(rateId);
     if (!item) return;
     item.rating = val;
-    saveData();
+    saveData(true);
+    updateCardInPlace(rateId);
     closeRate();
     if (val) showToast(`⭐ «${item.name}» — ${val}/10`);
     else showToast('⭐ Оценка сброшена');
@@ -1363,6 +1549,7 @@ $('#mainMenu').addEventListener('click', function(e) {
     $('#mainMenu').classList.remove('show');
     const act = btn.dataset.action;
     if (act === 'achievements') renderAchievements();
+    else if (act === 'collections') renderCollections();
     else if (act === 'analytics') renderAnalytics();
     else if (act === 'trash') renderTrash();
     else if (act === 'duplicates') openDuplicates();
@@ -1447,17 +1634,15 @@ $('#sortSelect').addEventListener('change', function() {
 });
 
 function setView(mode) {
-    viewMode = mode;
+    viewMode = 'grid';
     try {
-        localStorage.setItem(VIEW_KEY, mode);
+        localStorage.setItem(VIEW_KEY, 'grid');
     } catch (e) { /* ignore */ }
-    $('#viewGrid').classList.toggle('active', mode === 'grid');
-    $('#viewList').classList.toggle('active', mode === 'list');
+    $('#viewGrid').classList.add('active');
     render();
 }
 
 $('#viewGrid').addEventListener('click', () => setView('grid'));
-$('#viewList').addEventListener('click', () => setView('list'));
 
 function setCardSize(s) {
     cardSize = s;
@@ -1591,6 +1776,7 @@ function closeTopModal() {
     else if ($('#trashModal').classList.contains('show')) closeTrash();
     else if ($('#analyticsModal').classList.contains('show')) closeAnalytics();
     else if ($('#achievementsModal').classList.contains('show')) closeAchievements();
+    else if ($('#collectionsModal').classList.contains('show')) closeCollections();
     else if ($('#duplicatesModal').classList.contains('show')) closeDuplicates();
     else if ($('#promptModal').classList.contains('show')) closePrompt();
     else if ($('#confirmModal').classList.contains('show')) closeConfirm();
@@ -1609,6 +1795,7 @@ const CLOSE_FNS = {
     trashModal: closeTrash,
     analyticsModal: closeAnalytics,
     achievementsModal: closeAchievements,
+    collectionsModal: closeCollections,
     duplicatesModal: closeDuplicates,
     promptModal: closePrompt
 };
@@ -1788,7 +1975,9 @@ function computeAnalytics() {
         topGenres: {},
         decades: {},
         monthCounts: {},
-        streak: 0
+        streak: 0,
+        episodes: 0,
+        serialsWatched: 0
     };
     const daySet = {};
     items.forEach(i => {
@@ -1813,10 +2002,25 @@ function computeAnalytics() {
         }
         (i.genres || []).forEach(g => { res.topGenres[g] = (res.topGenres[g] || 0) + 1; });
         res.avgRewatches += i.rewatches || 0;
-        if (i.runtime && i.status === 'Просмотрено') {
-            res.hours += i.runtime * (1 + (i.rewatches || 0));
+        if (i.runtime) {
+            let minutes = i.runtime;
+            if (i.type !== 'Фильм') {
+                const eps = i.status === 'Просмотрено'
+                    ? (i.totalEpisodes || i.watchedEpisodes || 1)
+                    : (i.watchedEpisodes || 1);
+                minutes = i.runtime * eps;
+            }
+            if (i.status === 'Просмотрено') res.hours += minutes * (1 + (i.rewatches || 0));
+            else if (i.status === 'В процессе') res.hours += minutes;
         }
         if (i.runtime) res.hoursKnown++;
+        if (i.type !== 'Фильм') {
+            const eps = i.status === 'Просмотрено'
+                ? (i.totalEpisodes || i.watchedEpisodes || 0)
+                : (i.watchedEpisodes || 0);
+            res.episodes += eps;
+            if (i.status === 'Просмотрено') res.serialsWatched++;
+        }
     });
     res.hours = Math.round(res.hours / 60);
     res.avgRewatches = items.length ? (res.avgRewatches / items.length).toFixed(1) : '0';
@@ -1841,12 +2045,14 @@ function renderAnalytics() {
     });
     const bestMonthLabel = bestMonth
         ? `${MONTH_LABELS[parseInt(bestMonth.slice(5), 10) - 1]} ${bestMonth.slice(0, 4)}` : '—';
-    const hoursNote = !a.hours && items.length
-        ? '<div class="an-none">Хронометраж подтянется после открытия деталей фильмов</div>' : '';
+    const hoursNote = !a.hoursKnown && items.length
+        ? '<div class="an-none">Хронометраж подтянется автоматически из TMDB</div>' : '';
 
     const statsHtml = `
         <div class="an-stats">
             <div class="an-stat-card"><div class="v">${a.hours} ч</div><div class="k">часов просмотрено</div></div>
+            <div class="an-stat-card"><div class="v">${a.episodes}</div><div class="k">серий/эпизодов</div></div>
+            <div class="an-stat-card"><div class="v">${a.serialsWatched}</div><div class="k">завершено сериалов</div></div>
             <div class="an-stat-card"><div class="v">${a.avgRewatches}</div><div class="k">среднее пересмотров</div></div>
             <div class="an-stat-card"><div class="v sm">${bestMonthLabel}</div><div class="k">активный месяц · ${bestCount} шт</div></div>
             <div class="an-stat-card"><div class="v">${a.streak}🔥</div><div class="k">дней подряд</div></div>
@@ -1892,35 +2098,108 @@ function closeAnalytics() {
 // ========================
 //  ДОСТИЖЕНИЯ И УРОВНИ
 // ========================
+const LEVELS = [
+    [1, 'Новичок'],
+    [3, 'Любопытный'],
+    [5, 'Зритель'],
+    [10, 'Киностарт'],
+    [15, 'Кинофил'],
+    [20, 'Киноман'],
+    [30, 'Синематографист'],
+    [50, 'Знаток'],
+    [75, 'Профи'],
+    [100, 'Эксперт'],
+    [150, 'Мастер'],
+    [200, 'Легенда кино'],
+    [300, 'Гуру'],
+    [500, 'Икона'],
+    [750, 'Миф'],
+    [1000, 'Живая легенда'],
+    [1500, 'Неутомимый'],
+    [2000, 'Коллекционер'],
+    [3000, 'Хранитель архивов'],
+    [5000, 'Бессмертный']
+];
+
 function getLevel(n) {
-    if (n >= 200) return { name: 'Легенда кино', next: null };
-    if (n >= 100) return { name: 'Эксперт', next: 200 };
-    if (n >= 50) return { name: 'Знаток', next: 100 };
-    if (n >= 20) return { name: 'Киноман', next: 50 };
-    if (n >= 5) return { name: 'Зритель', next: 20 };
-    return { name: 'Новичок', next: 5 };
+    let name = LEVELS[0][1];
+    let next = null;
+    for (let i = 0; i < LEVELS.length; i++) {
+        if (n >= LEVELS[i][0]) {
+            name = LEVELS[i][1];
+            next = i + 1 < LEVELS.length ? LEVELS[i + 1][0] : null;
+        }
+    }
+    return { name, next };
 }
 
 function checkAchievements() {
     const total = items.length;
     const watched = items.filter(i => i.status === 'Просмотрено').length;
+    const films = items.filter(i => i.type === 'Фильм').length;
     const rewatches = items.reduce((s, i) => s + (i.rewatches || 0), 0);
     const rated9 = items.filter(i => i.rating >= 9).length;
+    const rated10 = items.filter(i => i.rating === 10).length;
+    const ratedCount = items.filter(i => i.rating > 0).length;
     const genres = new Set(items.flatMap(i => i.genres || []));
     const anime = items.filter(i => i.type === 'Аниме').length;
     const serials = items.filter(i => i.type === 'Сериал').length;
+    const important = items.filter(i => i.important).length;
+    const tmdbHigh = items.filter(i => i.tmdbRating && i.tmdbRating >= 8.5).length;
+    const decades = new Set(items.filter(i => i.year).map(i => Math.floor(i.year / 10) * 10)).size;
     const a = computeAnalytics();
+
+    let night = 0, morning = 0, maxDay = 0;
+    const dayCounts = {};
+    items.forEach(i => {
+        const d = new Date(i.id);
+        if (isNaN(d)) return;
+        const h = d.getHours();
+        if (h >= 22 || h < 5) night++;
+        if (h >= 5 && h < 9) morning++;
+        const dk = d.toDateString();
+        dayCounts[dk] = (dayCounts[dk] || 0) + 1;
+    });
+    maxDay = Math.max(...Object.values(dayCounts), 0);
+
+    const oldest = items.length
+        ? items.slice().sort((x, y) => x.id - y.id)[0] : null;
+
     const list = [
-        { icon: '🎬', name: 'Первые шаги', desc: 'добавь первый фильм', cur: Math.min(total, 1), need: 1, done: total >= 1 },
+        { icon: '🎬', name: 'Первые шаги', desc: 'добавь первую запись', cur: Math.min(total, 1), need: 1, done: total >= 1 },
+        { icon: '🚀', name: 'Киностарт', desc: '5 записей в коллекции', cur: Math.min(total, 5), need: 5, done: total >= 5 },
+        { icon: '📚', name: 'Двадцатка', desc: '20 записей в коллекции', cur: Math.min(total, 20), need: 20, done: total >= 20 },
+        { icon: '📀', name: 'Полтинник', desc: '50 записей в коллекции', cur: Math.min(total, 50), need: 50, done: total >= 50 },
+        { icon: '💎', name: 'Сотня', desc: '100 записей в коллекции', cur: Math.min(total, 100), need: 100, done: total >= 100 },
+        { icon: '👑', name: 'Король архива', desc: '200 записей в коллекции', cur: Math.min(total, 200), need: 200, done: total >= 200 },
         { icon: '📺', name: 'Сериаломан', desc: '10 сериалов в коллекции', cur: Math.min(serials, 10), need: 10, done: serials >= 10 },
+        { icon: '📡', name: 'Серийный маньяк', desc: '25 сериалов в коллекции', cur: Math.min(serials, 25), need: 25, done: serials >= 25 },
         { icon: '🎌', name: 'Аниме-фанат', desc: '10 аниме в коллекции', cur: Math.min(anime, 10), need: 10, done: anime >= 10 },
+        { icon: '🌸', name: 'Сенпай', desc: '25 аниме в коллекции', cur: Math.min(anime, 25), need: 25, done: anime >= 25 },
         { icon: '🍿', name: 'Киномарафон', desc: '50 просмотренных', cur: Math.min(watched, 50), need: 50, done: watched >= 50 },
+        { icon: '🎪', name: 'Мега-марафон', desc: '250 просмотренных', cur: Math.min(watched, 250), need: 250, done: watched >= 250 },
+        { icon: '🎟️', name: 'Киноман дня', desc: '8 добавлений за один день', cur: Math.min(maxDay, 8), need: 8, done: maxDay >= 8 },
         { icon: '🔄', name: 'Мастер пересмотров', desc: '10 пересмотров', cur: Math.min(rewatches, 10), need: 10, done: rewatches >= 10 },
+        { icon: '🔁', name: 'Вечный повтор', desc: '50 пересмотров', cur: Math.min(rewatches, 50), need: 50, done: rewatches >= 50 },
         { icon: '⭐', name: 'Строгий критик', desc: '10 оценок 9–10', cur: Math.min(rated9, 10), need: 10, done: rated9 >= 10 },
+        { icon: '💯', name: 'Идеальный вкус', desc: '5 оценок 10/10', cur: Math.min(rated10, 5), need: 5, done: rated10 >= 5 },
+        { icon: '✍️', name: 'Оценщик', desc: 'оценено 50 записей', cur: Math.min(ratedCount, 50), need: 50, done: ratedCount >= 50 },
         { icon: '🎭', name: 'Разносторонний', desc: '5 разных жанров', cur: Math.min(genres.size, 5), need: 5, done: genres.size >= 5 },
+        { icon: '🌈', name: 'Всеядный', desc: '15 разных жанров', cur: Math.min(genres.size, 15), need: 15, done: genres.size >= 15 },
         { icon: '🔥', name: 'Серия недели', desc: '7 дней подряд с добавлениями', cur: Math.min(a.streak, 7), need: 7, done: a.streak >= 7 },
-        { icon: '🏛️', name: 'Хранитель истории', desc: 'самая старая запись в коллекции', cur: items.length ? 1 : 0, need: 1, done: items.length > 0 },
-        { icon: '🏆', name: 'Легенда', desc: '100 фильмов в коллекции', cur: Math.min(total, 100), need: 100, done: total >= 100 }
+        { icon: '⚡', name: 'Месяц марафона', desc: '30 дней подряд', cur: Math.min(a.streak, 30), need: 30, done: a.streak >= 30 },
+        { icon: '🌙', name: 'Ночной кинозритель', desc: '10 добавлений после 22:00', cur: Math.min(night, 10), need: 10, done: night >= 10 },
+        { icon: '☀️', name: 'Ранняя пташка', desc: '10 добавлений до 9:00', cur: Math.min(morning, 10), need: 10, done: morning >= 10 },
+        { icon: '🏛️', name: 'Хранитель истории', desc: 'самая старая запись в коллекции', cur: oldest ? 1 : 0, need: 1, done: !!oldest },
+        { icon: '🗺️', name: 'Первопроходец', desc: oldest ? `первая запись — «${oldest.name}»` : 'добавь первую запись', cur: oldest ? 1 : 0, need: 1, done: !!oldest },
+        { icon: '⏱️', name: 'Кинотеоретик', desc: '100 часов просмотра', cur: Math.min(a.hours, 100), need: 100, done: a.hours >= 100 },
+        { icon: '⏳', name: 'Одержимый зритель', desc: '500 часов просмотра', cur: Math.min(a.hours, 500), need: 500, done: a.hours >= 500 },
+        { icon: '🎞️', name: 'Эпизодист', desc: '100 серий/эпизодов просмотрено', cur: Math.min(a.episodes, 100), need: 100, done: a.episodes >= 100 },
+        { icon: '🎬', name: 'Завершитель', desc: '10 сериалов просмотрено целиком', cur: Math.min(a.serialsWatched, 10), need: 10, done: a.serialsWatched >= 10 },
+        { icon: '📅', name: 'Коллекция десятилетий', desc: 'фильмы из 5 десятилетий', cur: Math.min(decades, 5), need: 5, done: decades >= 5 },
+        { icon: '🎖️', name: 'Оскароносец', desc: '5 записей с рейтингом TMDB 8.5+', cur: Math.min(tmdbHigh, 5), need: 5, done: tmdbHigh >= 5 },
+        { icon: '❤️', name: 'Любимое', desc: '10 важных записей', cur: Math.min(important, 10), need: 10, done: important >= 10 },
+        { icon: '🏆', name: 'Легенда', desc: '100 фильмов в коллекции', cur: Math.min(films, 100), need: 100, done: films >= 100 }
     ];
     return { level: getLevel(total), list };
 }
@@ -1929,7 +2208,8 @@ function renderAchievements() {
     const { level, list } = checkAchievements();
     const doneCount = list.filter(a => a.done).length;
     $('#achLevelName').textContent = level.name;
-    $('#achLevelSub').textContent = `Уровень «${level.name}» · ${items.length} записей · выполнено ${doneCount} из ${list.length}`;
+    const nextText = level.next ? ` · до уровня: ${Math.max(0, level.next - items.length)}` : '';
+    $('#achLevelSub').textContent = `Уровень «${level.name}» · ${items.length} записей · выполнено ${doneCount} из ${list.length}${nextText}`;
     $('#achGrid').innerHTML = list.map(a => `
         <div class="ach-item${a.done ? '' : ' locked'}">
             <div class="ach-icon">${a.icon}</div>
@@ -1942,39 +2222,176 @@ function renderAchievements() {
     $('#achievementsModal').classList.add('show');
 }
 
+function trackAchievementUnlocks() {
+    try {
+        const { list } = checkAchievements();
+        const done = list.filter(x => x.done).map(x => x.name);
+        const saved = loadJSON('kinoAchUnlocked', []);
+        const fresh = done.filter(n => !saved.includes(n));
+        if (fresh.length) {
+            localStorage.setItem('kinoAchUnlocked', JSON.stringify(done));
+            setTimeout(() => showToast('🏆 Новое достижение: ' + fresh.slice(0, 2).join(', ') + (fresh.length > 2 ? ' и др.' : '')), 4500);
+        }
+    } catch (e) { /* ignore */ }
+}
+
 function closeAchievements() {
     $('#achievementsModal').classList.remove('show');
 }
 
 // ========================
-//  КУЛЬТОВАЯ КЛАССИКА
+//  КОЛЛЕКЦИИ ФИЛЬМОВ
 // ========================
-function renderClassics() {
-    const section = $('#classicsSection');
-    const query = ($('#searchInput').value || '').trim();
-    const missing = CLASSICS.filter(c => !items.some(i => i.name.trim().toLowerCase() === c.name.toLowerCase()));
-    if (!missing.length || query) {
-        section.style.display = 'none';
-        return;
-    }
-    section.style.display = 'block';
-    $('#classicsRow').innerHTML = missing.slice(0, 12).map(c => `
-        <div class="classic-item" data-classic-name="${esc(c.name)}" data-classic-type="${c.type}">
-            <div class="classic-icon"><i class="fas fa-film"></i></div>
-            <div class="classic-name">${esc(c.name)}</div>
-            <div class="classic-year">${c.year}</div>
-            <button class="classic-add">+ Добавить</button>
-        </div>`).join('');
+const COLL_POSTERS_KEY = 'kinoCollectionPosters';
+const collPosterCache = loadJSON(COLL_POSTERS_KEY, {});
+let collPrefetchBusy = false;
+
+function findCollectionItem(film) {
+    const nm = film.name.trim().toLowerCase();
+    return items.find(i => i.name.trim().toLowerCase() === nm);
 }
 
-$('#classicsRow').addEventListener('click', function(e) {
-    const btn = e.target.closest('.classic-add');
-    if (!btn) return;
-    const el = btn.closest('[data-classic-name]');
-    if (!el) return;
-    if (addItem(el.dataset.classicName, el.dataset.classicType, 'Буду смотреть', 0, 0, '', 0, 0, '')) {
-        render();
-        showToast('📌 Добавлено в «Буду смотреть»!');
+function collectionsBodyHtml() {
+    let fIdx = 0;
+    return COLLECTIONS.map(c => {
+        const done = c.films.filter(f => {
+            const item = findCollectionItem(f);
+            return item && item.status === 'Просмотрено';
+        }).length;
+        const itemsHtml = c.films.map(f => {
+            const idx = fIdx++;
+            const item = findCollectionItem(f);
+            const poster = item && item.poster ? item.poster : collPosterCache[f.name + '|' + f.type];
+            let cls = 'coll-chip';
+            let badge = '';
+            if (item && item.status === 'Просмотрено') {
+                cls += ' watched';
+                badge = '<div class="coll-check"><i class="fas fa-check"></i></div>';
+            } else if (item) {
+                cls += ' partial';
+                badge = `<div class="coll-state">${STATUS_ICONS[item.status] || '⏳'}</div>`;
+            } else {
+                cls += ' new';
+                badge = '<div class="coll-add-hint"><i class="fas fa-plus"></i></div>';
+            }
+            const img = poster
+                ? `<img src="${esc(poster)}" alt="${esc(f.name)}" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'">`
+                : '<div class="coll-ph"><i class="fas fa-film"></i></div>';
+            return `
+                <div class="${cls}" data-coll-name="${esc(f.name)}" data-coll-type="${f.type}" data-fidx="${idx}" title="${esc(f.name)} (${f.year})">
+                    ${img}${badge}
+                    <div class="coll-name">${esc(f.name)}</div>
+                </div>`;
+        }).join('');
+        return `
+            <div class="coll-block">
+                <div class="coll-head"><span class="coll-icon">${c.icon}</span> ${esc(c.name)} <span class="coll-count">${done}/${c.films.length}</span></div>
+                <div class="coll-row">${itemsHtml}</div>
+            </div>`;
+    }).join('');
+}
+
+function renderCollections() {
+    $('#collectionsBody').innerHTML = collectionsBodyHtml();
+    $('#collectionsModal').classList.add('show');
+    prefetchCollPosters();
+}
+
+function closeCollections() {
+    $('#collectionsModal').classList.remove('show');
+}
+
+async function ensureCollPoster(film) {
+    const key = film.name + '|' + film.type;
+    if (collPosterCache[key]) return collPosterCache[key];
+    try {
+        const resp = await tmdbFetch(`/search/multi?query=${encodeURIComponent(film.name)}&language=ru-RU`);
+        if (!resp.ok) return '';
+        const data = await resp.json();
+        const found = (data.results || []).find(r =>
+            (r.title || r.name || '').toLowerCase() === film.name.toLowerCase()) || (data.results || [])[0];
+        const p = found && found.poster_path ? `https://image.tmdb.org/t/p/w185${found.poster_path}` : '';
+        collPosterCache[key] = p;
+        try { localStorage.setItem(COLL_POSTERS_KEY, JSON.stringify(collPosterCache)); } catch (e) { /* ignore */ }
+        return p;
+    } catch (e) {
+        return '';
+    }
+}
+
+async function prefetchCollPosters() {
+    if (collPrefetchBusy) return;
+    collPrefetchBusy = true;
+    const missing = [];
+    let fIdx = 0;
+    COLLECTIONS.forEach(c => c.films.forEach(f => {
+        const item = findCollectionItem(f);
+        if (!item && !collPosterCache[f.name + '|' + f.type]) missing.push({ film: f, idx: fIdx });
+        fIdx++;
+    }));
+    for (const { film, idx } of missing) {
+        const p = await ensureCollPoster(film);
+        if (p) {
+            const chip = document.querySelector(`#collectionsBody [data-fidx="${idx}"]`);
+            if (chip) {
+                const img = chip.querySelector('img');
+                if (img) {
+                    img.src = p;
+                    img.style.display = 'block';
+                } else {
+                    const ph = chip.querySelector('.coll-ph');
+                    if (ph) {
+                        const nimg = document.createElement('img');
+                        nimg.src = p;
+                        nimg.alt = '';
+                        nimg.loading = 'lazy';
+                        nimg.referrerPolicy = 'no-referrer';
+                        ph.replaceWith(nimg);
+                    }
+                }
+            }
+        }
+        await new Promise(r => setTimeout(r, 250));
+    }
+    collPrefetchBusy = false;
+}
+
+$('#collectionsBody').addEventListener('click', async function(e) {
+    const chip = e.target.closest('[data-coll-name]');
+    if (!chip) return;
+    const name = chip.dataset.collName;
+    const type = chip.dataset.collType;
+    const existing = items.find(i => i.name.trim().toLowerCase() === name.toLowerCase());
+    if (existing) {
+        openDetail(existing.id);
+        return;
+    }
+    showToast('🔍 Ищем и добавляем...');
+    try {
+        const resp = await tmdbFetch(`/search/multi?query=${encodeURIComponent(name)}&language=ru-RU`);
+        if (!resp.ok) throw new Error('TMDB error');
+        const data = await resp.json();
+        const found = (data.results || []).find(r =>
+            (r.title || r.name || '').toLowerCase() === name.toLowerCase()) || (data.results || [])[0];
+        if (found) {
+            const title = found.title || found.name || name;
+            const ftype = found.media_type === 'tv' ? 'Сериал' : 'Фильм';
+            const poster = found.poster_path ? `https://image.tmdb.org/t/p/w185${found.poster_path}` : '';
+            const rating = found.vote_average ? Math.round(found.vote_average * 10) / 10 : 0;
+            if (addItem(title, ftype, 'Буду смотреть', rating, 0, poster, 0, 0, '', false, false,
+                found.id, found.media_type === 'movie' ? 'movie' : 'tv')) {
+                const newItem = items[items.length - 1];
+                const y = parseInt((found.release_date || found.first_air_date || '').slice(0, 4), 10);
+                if (!isNaN(y)) newItem.year = y;
+                saveData();
+                renderCollections();
+                showToast('📌 Добавлено в «Буду смотреть»!');
+            }
+        } else {
+            showToast('❌ Не найден на TMDB', true);
+        }
+    } catch (e) {
+        showToast('❌ Ошибка', true);
     }
 });
 
@@ -2002,56 +2419,99 @@ function weeklySummary() {
 }
 
 // ========================
-//  ФОНОВАЯ ДОЗАГРУЗКА TMDB (год + рейтинг + жанры + хронометраж)
+//  ФОНОВАЯ ДОЗАГРУЗКА TMDB (год + рейтинг + жанры + хронометраж + серии)
 // ========================
 function backfillTMDB() {
-    let done = false;
-    try {
-        done = localStorage.getItem(BACKFILL_KEY) === '1';
-    } catch (e) { /* ignore */ }
-    if (done) return;
+    const missing = items.filter(i => i.tmdbId !== 0 && !i.tmdbId && !i.year && !i.tmdbRating).slice(0, 15);
+    const noDetail = items.filter(i => i.tmdbId > 0 &&
+        (!i.runtime || (i.type !== 'Фильм' && !i.totalEpisodes) || !i.overview)).slice(0, 15);
 
-    const missing = items.filter(i => !i.year && !i.tmdbRating).slice(0, 15);
-    if (!missing.length) {
-        try { localStorage.setItem(BACKFILL_KEY, '1'); } catch (e) { /* ignore */ }
-        return;
-    }
+    const searchBatch = () => {
+        let k = 0;
+        const tick = async () => {
+            if (k >= missing.length) {
+                saveData(true);
+                detailBatch();
+                return;
+            }
+            const item = missing[k++];
+            try {
+                const resp = await tmdbFetch(`/search/multi?query=${encodeURIComponent(item.name)}&language=ru-RU`);
+                if (resp.ok) {
+                    const data = await resp.json();
+                    const wantMovie = item.type === 'Фильм';
+                    const exact = (data.results || []).filter(r =>
+                        (r.title || r.name || '').toLowerCase() === item.name.toLowerCase());
+                    const first = exact.find(r => (r.media_type === 'movie') === wantMovie)
+                        || exact[0]
+                        || (data.results || []).find(r => (r.media_type === 'movie') === wantMovie)
+                        || (data.results || [])[0];
+                    if (first) {
+                        item.tmdbId = first.id;
+                        item.tmdbType = first.media_type === 'movie' ? 'movie' : 'tv';
+                        if (item.year === null) {
+                            const y = parseInt((first.release_date || first.first_air_date || '').slice(0, 4), 10);
+                            if (!isNaN(y)) item.year = y;
+                        }
+                        if (item.tmdbRating === null && first.vote_average) {
+                            item.tmdbRating = Math.round(first.vote_average * 10) / 10;
+                        }
+                        if (!item.overview && first.overview) item.overview = first.overview;
+                        if (item.runtime === null && first.runtime) item.runtime = first.runtime;
+                    } else {
+                        item.tmdbId = 0;
+                    }
+                } else {
+                    item.tmdbId = 0;
+                }
+            } catch (e) {
+                item.tmdbId = 0;
+            }
+            setTimeout(tick, 300);
+        };
+        tick();
+    };
 
-    let k = 0;
-    const tick = async () => {
-        if (k >= missing.length) {
-            try { localStorage.setItem(BACKFILL_KEY, '1'); } catch (e) { /* ignore */ }
-            saveData();
-            return;
-        }
-        const item = missing[k++];
-        try {
-            const resp = await tmdbFetch(`/search/multi?query=${encodeURIComponent(item.name)}&language=ru-RU`);
-            if (resp.ok) {
-                const data = await resp.json();
-                const first = data.results && data.results[0];
-                if (first) {
+    const detailBatch = () => {
+        let k = 0;
+        const tick = async () => {
+            if (k >= noDetail.length) {
+                saveData(true);
+                return;
+            }
+            const item = noDetail[k++];
+            try {
+                const dResp = await tmdbFetch(`/${item.tmdbType}/${item.tmdbId}?language=ru-RU`);
+                if (dResp.ok) {
+                    const d = await dResp.json();
+                    if (item.type === 'Фильм') {
+                        if (item.runtime === null && d.runtime) item.runtime = d.runtime;
+                    } else {
+                        if (item.runtime === null && d.episode_run_time && d.episode_run_time[0]) {
+                            item.runtime = d.episode_run_time[0];
+                        }
+                        if (!item.totalEpisodes && d.number_of_episodes) item.totalEpisodes = d.number_of_episodes;
+                    }
+                    if (!item.overview && d.overview) item.overview = d.overview;
                     if (item.year === null) {
-                        const y = parseInt((first.release_date || first.first_air_date || '').slice(0, 4), 10);
+                        const y = parseInt((d.release_date || d.first_air_date || '').slice(0, 4), 10);
                         if (!isNaN(y)) item.year = y;
                     }
-                    if (item.tmdbRating === null && first.vote_average) {
-                        item.tmdbRating = Math.round(first.vote_average * 10) / 10;
+                    if (item.tmdbRating === null && d.vote_average) {
+                        item.tmdbRating = Math.round(d.vote_average * 10) / 10;
                     }
-                    if (!item.overview && first.overview) item.overview = first.overview;
-                    if (item.runtime === null && first.runtime) item.runtime = first.runtime;
-                    if ((!item.genres || !item.genres.length) && first.genre_ids && first.genre_ids.length) {
-                        try {
-                            const genreMap = await fetchGenreMap();
-                            item.genres = first.genre_ids.map(id => genreMap[id]).filter(Boolean);
-                        } catch (e) { /* ignore */ }
+                    if ((!item.genres || !item.genres.length) && d.genres && d.genres.length) {
+                        item.genres = d.genres.map(g => g.name).filter(Boolean);
                     }
                 }
-            }
-        } catch (e) { /* ignore */ }
-        setTimeout(tick, 350);
+            } catch (e) { /* ignore */ }
+            setTimeout(tick, 300);
+        };
+        tick();
     };
-    tick();
+
+    if (missing.length) searchBatch();
+    else if (noDetail.length) detailBatch();
 }
 
 // ========================
