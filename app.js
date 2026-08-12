@@ -22,26 +22,131 @@ async function tmdbFetch(path) {
 }
 
 // ========================
-//  ПОСТЕРЫ (с fallback через прокси)
+//  ПОСТЕРЫ (постоянный кэш в IndexedDB)
 // ========================
-// Кэш обложек в памяти: если картинка грузится через прокси (wsrv.nl),
-// сохраняем её как blob-URL, чтобы при перерисовке интерфейса обложки
-// не перезагружались заново.
-const posterBlobCache = new Map();
+// Обложки скачиваются один раз (через прокси wsrv.nl, т.к. image.tmdb.org
+// часто заблокирован) и хранятся в IndexedDB. При перерисовке интерфейса
+// и перезагрузке страницы обложки подставляются мгновенно из кэша.
+const posterBlobCache = new Map();   // url -> objectURL (память)
+const posterFetchQueue = new Map();  // url -> Promise (дедупликация)
+const POSTER_DB_NAME = 'kinoPostersDB';
+const POSTER_DB_STORE = 'posters';
+let posterDB = null;
 
-async function cachedPosterSrc(url) {
-    if (!url || posterBlobCache.has(url)) return url;
+function openPosterDB() {
+    if (posterDB) return Promise.resolve(posterDB);
+    return new Promise(resolve => {
+        try {
+            const req = indexedDB.open(POSTER_DB_NAME, 1);
+            req.onupgradeneeded = () => {
+                const db = req.result;
+                if (!db.objectStoreNames.contains(POSTER_DB_STORE)) db.createObjectStore(POSTER_DB_STORE);
+            };
+            req.onsuccess = () => { posterDB = req.result; resolve(posterDB); };
+            req.onerror = () => { posterDB = null; resolve(null); };
+        } catch (e) {
+            resolve(null);
+        }
+    });
+}
+
+function idbGetPoster(url) {
+    return openPosterDB().then(db => new Promise(resolve => {
+        if (!db) return resolve(null);
+        try {
+            const tx = db.transaction(POSTER_DB_STORE, 'readonly');
+            const req = tx.objectStore(POSTER_DB_STORE).get(url);
+            req.onsuccess = () => resolve(req.result || null);
+            req.onerror = () => resolve(null);
+        } catch (e) {
+            resolve(null);
+        }
+    }));
+}
+
+function idbPutPoster(url, blob) {
+    openPosterDB().then(db => {
+        if (!db) return;
+        try {
+            const tx = db.transaction(POSTER_DB_STORE, 'readwrite');
+            tx.objectStore(POSTER_DB_STORE).put(blob, url);
+        } catch (e) { /* ignore */ }
+    });
+}
+
+async function fetchPosterBlob(url) {
     try {
         const resp = await fetch(url);
-        if (!resp.ok) throw new Error('bad status');
-        const blob = await resp.blob();
-        const obj = URL.createObjectURL(blob);
-        posterBlobCache.set(url, obj);
-        return obj;
-    } catch (e) {
-        posterBlobCache.set(url, url);
-        return url;
-    }
+        if (resp.ok) {
+            const blob = await resp.blob();
+            if (blob && blob.size > 100) return blob;
+        }
+    } catch (e) { /* ignore */ }
+    try {
+        const proxied = 'https://wsrv.nl/?url=' + encodeURIComponent(url) + '&w=500';
+        const resp = await fetch(proxied);
+        if (resp.ok) {
+            const blob = await resp.blob();
+            if (blob && blob.size > 100) return blob;
+        }
+    } catch (e) { /* ignore */ }
+    return null;
+}
+
+// Возвращает blob-URL для картинки (из памяти / IndexedDB / сети).
+function ensurePosterCached(url) {
+    if (posterBlobCache.has(url)) return Promise.resolve(posterBlobCache.get(url));
+    if (posterFetchQueue.has(url)) return posterFetchQueue.get(url);
+
+    const p = idbGetPoster(url).then(blob => {
+        if (blob) {
+            const obj = URL.createObjectURL(blob);
+            posterBlobCache.set(url, obj);
+            return obj;
+        }
+        return fetchPosterBlob(url).then(blob => {
+            if (blob) {
+                const obj = URL.createObjectURL(blob);
+                posterBlobCache.set(url, obj);
+                idbPutPoster(url, blob);
+                return obj;
+            }
+            posterBlobCache.set(url, url);
+            return url;
+        });
+    }).catch(() => url);
+
+    posterFetchQueue.set(url, p);
+    p.then(() => posterFetchQueue.delete(url), () => posterFetchQueue.delete(url));
+    return p;
+}
+
+// Проходится по всем картинкам на странице и подменяет их на кэшированные
+// blob-URL. Вызывается после каждого перерендера.
+function warmPosterCache() {
+    const imgs = document.querySelectorAll('img[src^="http"]');
+    const pending = [];
+    imgs.forEach(img => {
+        const src = img.src;
+        if (!src || src.startsWith('blob:')) return;
+        const cached = posterBlobCache.get(src);
+        if (cached) {
+            img.src = cached;
+        } else {
+            pending.push({ img, src });
+        }
+    });
+    let i = 0;
+    const step = async () => {
+        while (i < pending.length) {
+            const { img, src } = pending[i++];
+            const obj = await ensurePosterCached(src);
+            if (obj && obj !== src && img.isConnected && !img.src.startsWith('blob:')) {
+                img.src = obj;
+            }
+        }
+    };
+    for (let c = 0; c < 6 && c < pending.length; c++) step();
 }
 
 function posterFallbackHtml(mode, name) {
@@ -55,9 +160,8 @@ function posterFallbackHtml(mode, name) {
     return '';
 }
 
-// Запасной путь для картинок: image.tmdb.org может блокироваться сетью,
-// тогда грузим через прокси wsrv.nl, а если и он не смог — плейсхолдер.
-// Удачные загрузки через прокси кэшируются как blob-URL.
+// Запасной путь для картинок: грузим через кэш/прокси wsrv.nl,
+// а если и он не смог — плейсхолдер.
 window.posterError = function(img, url, w, mode, name) {
     if (img.dataset.retried) {
         if (mode === 'hero') {
@@ -71,8 +175,20 @@ window.posterError = function(img, url, w, mode, name) {
     }
     img.dataset.retried = '1';
     img.referrerPolicy = 'no-referrer';
-    const proxied = 'https://wsrv.nl/?url=' + encodeURIComponent(url) + '&w=' + w;
-    cachedPosterSrc(proxied).then(src => { img.src = src; });
+    ensurePosterCached(url).then(src => {
+        if (!img.isConnected) return;
+        if (src && src !== url && !img.src.startsWith('blob:')) {
+            img.src = src;
+        } else if (!img.src.startsWith('blob:')) {
+            if (mode === 'hero') {
+                img.style.display = 'none';
+                const fb = document.getElementById('detailHeroFallback');
+                if (fb) fb.style.display = 'flex';
+            } else {
+                img.outerHTML = posterFallbackHtml(mode, name);
+            }
+        }
+    });
 };
 
 function posterTag(url, alt, mode, name) {
@@ -571,6 +687,7 @@ function render() {
     emptyEl.style.display = 'none';
 
     cardsEl.innerHTML = filtered.map(item => buildGridCard(item, oldestId)).join('');
+    warmPosterCache();
 }
 
 function buildCardActions(item) {
@@ -901,6 +1018,7 @@ function renderTrash() {
                 <button class="t-purge" data-trash-act="purge" title="Удалить навсегда">🗑️</button>
             </div>`).join('');
     }
+    warmPosterCache();
     $('#trashModal').classList.add('show');
 }
 
@@ -1079,6 +1197,7 @@ async function searchTMDB() {
                     <button class="add-btn" ${exists ? 'style="opacity:0.35;pointer-events:none;"' : ''}><i class="fas fa-plus"></i></button>
                 </div>`;
         }).join('');
+        warmPosterCache();
 
     } catch (e) {
         if (e && e.api && (e.status === 401 || e.status === 403)) {
@@ -1159,6 +1278,7 @@ function openDetail(id) {
         ? '<i class="fas fa-star"></i> В избранном'
         : '<i class="far fa-star"></i> В избранное';
     $('#detailModal').classList.add('show');
+    warmPosterCache();
 
     fetchTMDBDetail(item).then(detail => {
         if (detail.overview) {
@@ -1221,6 +1341,7 @@ function openDetail(id) {
         } else {
             $('#detailSimilar').innerHTML = '<div style="color:#666;padding:8px;">Похожих не найдено</div>';
         }
+        warmPosterCache();
     }).catch(() => {
         $('#detailOverview').textContent = '❌ Ошибка загрузки описания';
         $('#detailSimilar').innerHTML = '<div style="color:#666;padding:8px;">Ошибка загрузки</div>';
@@ -2294,6 +2415,7 @@ function collectionsBodyHtml() {
 function renderCollections() {
     $('#collectionsBody').innerHTML = collectionsBodyHtml();
     $('#collectionsModal').classList.add('show');
+    warmPosterCache();
     prefetchCollPosters();
 }
 
@@ -2354,6 +2476,7 @@ async function prefetchCollPosters() {
         await new Promise(r => setTimeout(r, 250));
     }
     collPrefetchBusy = false;
+    warmPosterCache();
 }
 
 $('#collectionsBody').addEventListener('click', async function(e) {
