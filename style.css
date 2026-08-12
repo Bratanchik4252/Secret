@@ -1380,7 +1380,8 @@ body::before {
 .detail-modal .modal {
     max-width: 460px;
     padding: 0;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
 }
 
 .detail-hero {

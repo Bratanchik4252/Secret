@@ -1307,7 +1307,7 @@ function openDetail(id) {
         }
         if (!item.overview && detail.overview) { item.overview = detail.overview; changed = true; }
         if (item.runtime === null && detail.runtime) { item.runtime = detail.runtime; changed = true; }
-        if (item.tmdbId == null && detail.tmdbId) {
+        if ((item.tmdbId == null || item.tmdbId === 0) && detail.tmdbId) {
             item.tmdbId = detail.tmdbId;
             item.tmdbType = detail.tmdbType || (item.type === 'Фильм' ? 'movie' : 'tv');
             changed = true;
@@ -1363,13 +1363,11 @@ function formatRuntime(min, type) {
 }
 
 async function fetchTMDBDetail(item) {
-    if (item.tmdbId === 0) return {};
-
     let tmdbId = item.tmdbId;
     let tmdbType = item.tmdbType;
     let first = null;
 
-    if (tmdbId == null) {
+    if (tmdbId == null || tmdbId === 0) {
         const resp = await tmdbFetch(`/search/multi?query=${encodeURIComponent(item.name)}&language=ru-RU`);
         if (!resp.ok) throw new Error('TMDB error');
         const data = await resp.json();
@@ -2542,19 +2540,79 @@ function weeklySummary() {
 // ========================
 //  ФОНОВАЯ ДОЗАГРУЗКА TMDB (год + рейтинг + жанры + хронометраж + серии)
 // ========================
-function backfillTMDB() {
-    const missing = items.filter(i => i.tmdbId !== 0 && !i.tmdbId && !i.year && !i.tmdbRating).slice(0, 15);
-    const noDetail = items.filter(i => i.tmdbId > 0 &&
-        (!i.runtime || (i.type !== 'Фильм' && !i.totalEpisodes) || !i.overview)).slice(0, 15);
+const searchFailed = new Set();
+let backfillRounds = 0;
+const MAX_BACKFILL_ROUNDS = 4;
 
-    const searchBatch = () => {
+function needsDetail(item) {
+    return !item.runtime || !item.overview || !(item.genres || []).length
+        || (item.type !== 'Фильм' && !item.totalEpisodes);
+}
+
+function fillFromSearch(item, first) {
+    item.tmdbId = first.id;
+    item.tmdbType = first.media_type === 'movie' ? 'movie' : 'tv';
+    if (item.year == null) {
+        const y = parseInt((first.release_date || first.first_air_date || '').slice(0, 4), 10);
+        if (!isNaN(y)) item.year = y;
+    }
+    if (item.tmdbRating == null && first.vote_average) {
+        item.tmdbRating = Math.round(first.vote_average * 10) / 10;
+    }
+    if (!item.overview && first.overview) item.overview = first.overview;
+    if (item.runtime == null && first.runtime) item.runtime = first.runtime;
+}
+
+function fillFromDetail(item, d) {
+    if (item.type === 'Фильм') {
+        if (item.runtime == null && d.runtime) item.runtime = d.runtime;
+    } else {
+        if (item.runtime == null && d.episode_run_time && d.episode_run_time[0]) {
+            item.runtime = d.episode_run_time[0];
+        }
+        if (!item.totalEpisodes && d.number_of_episodes) item.totalEpisodes = d.number_of_episodes;
+    }
+    if (!item.overview && d.overview) item.overview = d.overview;
+    if (item.year == null) {
+        const y = parseInt((d.release_date || d.first_air_date || '').slice(0, 4), 10);
+        if (!isNaN(y)) item.year = y;
+    }
+    if (item.tmdbRating == null && d.vote_average) {
+        item.tmdbRating = Math.round(d.vote_average * 10) / 10;
+    }
+    if ((!item.genres || !item.genres.length) && d.genres && d.genres.length) {
+        item.genres = d.genres.map(g => g.name).filter(Boolean);
+    }
+}
+
+function backfillTMDB() {
+    if (backfillRounds >= MAX_BACKFILL_ROUNDS) return;
+    backfillRounds++;
+
+    // tmdbId: 0 — поиск ранее не дал результата; пробуем снова (ранее такие
+    // записи пропускались навсегда, поэтому у старых позиций не было ни
+    // описания, ни похожих, ни хронометража в аналитике).
+    const missing = items.filter(i => !i.tmdbId && !searchFailed.has(i.id) &&
+        (needsDetail(i) || !i.year || !i.tmdbRating)).slice(0, 15);
+    const noDetail = items.filter(i => i.tmdbId > 0 && needsDetail(i)).slice(0, 15);
+
+    if (!missing.length && !noDetail.length) { backfillRounds--; return; }
+
+    let pending = 0;
+    let changed = false;
+    const done = () => {
+        if (--pending > 0) return;
+        if (changed) {
+            saveData(true);
+            setTimeout(() => { backfillRounds--; backfillTMDB(); }, 3000);
+        }
+    };
+
+    if (missing.length) {
+        pending++;
         let k = 0;
         const tick = async () => {
-            if (k >= missing.length) {
-                saveData(true);
-                detailBatch();
-                return;
-            }
+            if (k >= missing.length) return done();
             const item = missing[k++];
             try {
                 const resp = await tmdbFetch(`/search/multi?query=${encodeURIComponent(item.name)}&language=ru-RU`);
@@ -2568,71 +2626,50 @@ function backfillTMDB() {
                         || (data.results || []).find(r => (r.media_type === 'movie') === wantMovie)
                         || (data.results || [])[0];
                     if (first) {
-                        item.tmdbId = first.id;
-                        item.tmdbType = first.media_type === 'movie' ? 'movie' : 'tv';
-                        if (item.year === null) {
-                            const y = parseInt((first.release_date || first.first_air_date || '').slice(0, 4), 10);
-                            if (!isNaN(y)) item.year = y;
+                        changed = true;
+                        fillFromSearch(item, first);
+                        if (needsDetail(item)) {
+                            const dResp = await tmdbFetch(`/${item.tmdbType}/${item.tmdbId}?language=ru-RU`);
+                            if (dResp.ok) {
+                                const d = await dResp.json();
+                                const before = needsDetail(item);
+                                fillFromDetail(item, d);
+                                if (needsDetail(item) !== before) changed = true;
+                            }
                         }
-                        if (item.tmdbRating === null && first.vote_average) {
-                            item.tmdbRating = Math.round(first.vote_average * 10) / 10;
-                        }
-                        if (!item.overview && first.overview) item.overview = first.overview;
-                        if (item.runtime === null && first.runtime) item.runtime = first.runtime;
                     } else {
-                        item.tmdbId = 0;
+                        searchFailed.add(item.id);
                     }
                 } else {
-                    item.tmdbId = 0;
+                    searchFailed.add(item.id);
                 }
             } catch (e) {
-                item.tmdbId = 0;
+                searchFailed.add(item.id);
             }
             setTimeout(tick, 300);
         };
         tick();
-    };
+    }
 
-    const detailBatch = () => {
+    if (noDetail.length) {
+        pending++;
         let k = 0;
         const tick = async () => {
-            if (k >= noDetail.length) {
-                saveData(true);
-                return;
-            }
+            if (k >= noDetail.length) return done();
             const item = noDetail[k++];
             try {
                 const dResp = await tmdbFetch(`/${item.tmdbType}/${item.tmdbId}?language=ru-RU`);
                 if (dResp.ok) {
                     const d = await dResp.json();
-                    if (item.type === 'Фильм') {
-                        if (item.runtime === null && d.runtime) item.runtime = d.runtime;
-                    } else {
-                        if (item.runtime === null && d.episode_run_time && d.episode_run_time[0]) {
-                            item.runtime = d.episode_run_time[0];
-                        }
-                        if (!item.totalEpisodes && d.number_of_episodes) item.totalEpisodes = d.number_of_episodes;
-                    }
-                    if (!item.overview && d.overview) item.overview = d.overview;
-                    if (item.year === null) {
-                        const y = parseInt((d.release_date || d.first_air_date || '').slice(0, 4), 10);
-                        if (!isNaN(y)) item.year = y;
-                    }
-                    if (item.tmdbRating === null && d.vote_average) {
-                        item.tmdbRating = Math.round(d.vote_average * 10) / 10;
-                    }
-                    if ((!item.genres || !item.genres.length) && d.genres && d.genres.length) {
-                        item.genres = d.genres.map(g => g.name).filter(Boolean);
-                    }
+                    const before = needsDetail(item);
+                    fillFromDetail(item, d);
+                    if (needsDetail(item) !== before) changed = true;
                 }
             } catch (e) { /* ignore */ }
             setTimeout(tick, 300);
         };
         tick();
-    };
-
-    if (missing.length) searchBatch();
-    else if (noDetail.length) detailBatch();
+    }
 }
 
 // ========================
