@@ -475,6 +475,427 @@ const COLLECTIONS = [
             { name: 'Реинкарнация безработного', type: 'Аниме', year: 2021 },
             { name: 'Атака титанов', type: 'Аниме', year: 2013 }
         ]
+    },
+    {
+        name: 'Матрица', icon: '🕶️',
+        films: [
+            { name: 'Матрица', type: 'Фильм', year: 1999 },
+            { name: 'Матрица: Перезагрузка', type: 'Фильм', year: 2003 },
+            { name: 'Матрица: Революция', type: 'Фильм', year: 2003 },
+            { name: 'Матрица: Воскрешение', type: 'Фильм', year: 2021 }
+        ]
+    },
+    {
+        name: 'Джон Уик', icon: '🐕',
+        films: [
+            { name: 'Джон Уик', type: 'Фильм', year: 2014 },
+            { name: 'Джон Уик 2', type: 'Фильм', year: 2017 },
+            { name: 'Джон Уик 3', type: 'Фильм', year: 2019 },
+            { name: 'Джон Уик 4', type: 'Фильм', year: 2023 }
+        ]
+    },
+    {
+        name: 'Миссия невыполнима', icon: '🎖️',
+        films: [
+            { name: 'Миссия невыполнима', type: 'Фильм', year: 1996 },
+            { name: 'Миссия невыполнима 2', type: 'Фильм', year: 2000 },
+            { name: 'Миссия невыполнима 3', type: 'Фильм', year: 2006 },
+            { name: 'Миссия невыполнима: Протокол Фантом', type: 'Фильм', year: 2011 },
+            { name: 'Миссия невыполнима: Племя изгоев', type: 'Фильм', year: 2015 },
+            { name: 'Миссия невыполнима: Последствия', type: 'Фильм', year: 2018 },
+            { name: 'Миссия невыполнима: Смертельная расплата. Часть 1', type: 'Фильм', year: 2023 }
+        ]
+    },
+    {
+        name: 'Терминатор', icon: '🦾',
+        films: [
+            { name: 'Терминатор', type: 'Фильм', year: 1984 },
+            { name: 'Терминатор 2: Судный день', type: 'Фильм', year: 1991 },
+            { name: 'Терминатор 3: Восстание машин', type: 'Фильм', year: 2003 },
+            { name: 'Терминатор: Да придёт спаситель', type: 'Фильм', year: 2009 },
+            { name: 'Терминатор: Генезис', type: 'Фильм', year: 2015 },
+            { name: 'Терминатор: Тёмные судьбы', type: 'Фильм', year: 2019 }
+        ]
+    },
+    {
+        name: 'Рэмбо', icon: '🏹',
+        films: [
+            { name: 'Рэмбо: Первая кровь', type: 'Фильм', year: 1982 },
+            { name: 'Рэмбо: Первая кровь 2', type: 'Фильм', year: 1985 },
+            { name: 'Рэмбо III', type: 'Фильм', year: 1988 },
+            { name: 'Рэмбо IV', type: 'Фильм', year: 2008 },
+            { name: 'Рэмбо: Последняя кровь', type: 'Фильм', year: 2019 }
+        ]
+    },
+    {
+        name: 'Крепкий орешек', icon: '💥',
+        films: [
+            { name: 'Крепкий орешек', type: 'Фильм', year: 1988 },
+            { name: 'Крепкий орешек 2', type: 'Фильм', year: 1990 },
+            { name: 'Крепкий орешек 3: Возмездие', type: 'Фильм', year: 1995 },
+            { name: 'Крепкий орешек 4.0', type: 'Фильм', year: 2007 },
+            { name: 'Крепкий орешек: Хороший день, чтобы умереть', type: 'Фильм', year: 2013 }
+        ]
+    },
+    {
+        name: 'Шрек', icon: '🟢',
+        films: [
+            { name: 'Шрек', type: 'Фильм', year: 2001 },
+            { name: 'Шрек 2', type: 'Фильм', year: 2004 },
+            { name: 'Шрек Третий', type: 'Фильм', year: 2007 },
+            { name: 'Шрек навсегда', type: 'Фильм', year: 2010 }
+        ]
+    },
+    {
+        name: 'Ледниковый период', icon: '🧊',
+        films: [
+            { name: 'Ледниковый период', type: 'Фильм', year: 2002 },
+            { name: 'Ледниковый период 2: Глобальное потепление', type: 'Фильм', year: 2006 },
+            { name: 'Ледниковый период 3: Эра динозавров', type: 'Фильм', year: 2009 },
+            { name: 'Ледниковый период 4: Континентальный дрейф', type: 'Фильм', year: 2012 },
+            { name: 'Ледниковый период: Столкновение неизбежно', type: 'Фильм', year: 2016 }
+        ]
+    },
+    {
+        name: 'Гадкий я и Миньоны', icon: '🍌',
+        films: [
+            { name: 'Гадкий я', type: 'Фильм', year: 2010 },
+            { name: 'Гадкий я 2', type: 'Фильм', year: 2013 },
+            { name: 'Гадкий я 3', type: 'Фильм', year: 2017 },
+            { name: 'Гадкий я 4', type: 'Фильм', year: 2024 },
+            { name: 'Миньоны', type: 'Фильм', year: 2015 },
+            { name: 'Миньоны: Грювитация', type: 'Фильм', year: 2022 }
+        ]
+    },
+    {
+        name: 'История игрушек', icon: '🤠',
+        films: [
+            { name: 'История игрушек', type: 'Фильм', year: 1995 },
+            { name: 'История игрушек 2', type: 'Фильм', year: 1999 },
+            { name: 'История игрушек: Большой побег', type: 'Фильм', year: 2010 },
+            { name: 'История игрушек 4', type: 'Фильм', year: 2019 }
+        ]
+    },
+    {
+        name: 'Как приручить дракона', icon: '🐲',
+        films: [
+            { name: 'Как приручить дракона', type: 'Фильм', year: 2010 },
+            { name: 'Как приручить дракона 2', type: 'Фильм', year: 2014 },
+            { name: 'Как приручить дракона 3', type: 'Фильм', year: 2019 }
+        ]
+    },
+    {
+        name: 'Холодное сердце', icon: '❄️',
+        films: [
+            { name: 'Холодное сердце', type: 'Фильм', year: 2013 },
+            { name: 'Холодное сердце 2', type: 'Фильм', year: 2019 }
+        ]
+    },
+    {
+        name: 'Веном', icon: '🖤',
+        films: [
+            { name: 'Веном', type: 'Фильм', year: 2018 },
+            { name: 'Веном 2', type: 'Фильм', year: 2021 },
+            { name: 'Веном: Последний танец', type: 'Фильм', year: 2024 }
+        ]
+    },
+    {
+        name: 'Соник', icon: '💨',
+        films: [
+            { name: 'Соник в кино', type: 'Фильм', year: 2020 },
+            { name: 'Соник 2 в кино', type: 'Фильм', year: 2022 },
+            { name: 'Соник 3 в кино', type: 'Фильм', year: 2024 }
+        ]
+    },
+    {
+        name: 'Аватар', icon: '🌌',
+        films: [
+            { name: 'Аватар', type: 'Фильм', year: 2009 },
+            { name: 'Аватар: Путь воды', type: 'Фильм', year: 2022 }
+        ]
+    },
+    {
+        name: 'Монстраверс', icon: '🦖',
+        films: [
+            { name: 'Годзилла', type: 'Фильм', year: 2014 },
+            { name: 'Конг: Остров черепа', type: 'Фильм', year: 2017 },
+            { name: 'Годзилла 2: Король монстров', type: 'Фильм', year: 2019 },
+            { name: 'Годзилла против Конга', type: 'Фильм', year: 2021 },
+            { name: 'Годзилла и Конг: Новая империя', type: 'Фильм', year: 2024 }
+        ]
+    },
+    {
+        name: 'Голодные игры', icon: '🔥',
+        films: [
+            { name: 'Голодные игры', type: 'Фильм', year: 2012 },
+            { name: 'Голодные игры: И вспыхнет пламя', type: 'Фильм', year: 2013 },
+            { name: 'Голодные игры: Сойка-пересмешница. Часть 1', type: 'Фильм', year: 2014 },
+            { name: 'Голодные игры: Сойка-пересмешница. Часть 2', type: 'Фильм', year: 2015 },
+            { name: 'Голодные игры: Баллада о змеях и певчих птицах', type: 'Фильм', year: 2023 }
+        ]
+    },
+    {
+        name: 'Дивергент', icon: '✂️',
+        films: [
+            { name: 'Дивергент', type: 'Фильм', year: 2014 },
+            { name: 'Дивергент, глава 2: Инсургент', type: 'Фильм', year: 2015 },
+            { name: 'Дивергент, глава 3: За стеной', type: 'Фильм', year: 2016 }
+        ]
+    },
+    {
+        name: 'Сумерки', icon: '🌒',
+        films: [
+            { name: 'Сумерки', type: 'Фильм', year: 2008 },
+            { name: 'Сумерки. Сага. Новолуние', type: 'Фильм', year: 2009 },
+            { name: 'Сумерки. Сага. Затмение', type: 'Фильм', year: 2010 },
+            { name: 'Сумерки. Сага. Рассвет — Часть 1', type: 'Фильм', year: 2011 },
+            { name: 'Сумерки. Сага. Рассвет — Часть 2', type: 'Фильм', year: 2012 }
+        ]
+    },
+    {
+        name: 'Оно', icon: '🎈',
+        films: [
+            { name: 'Оно', type: 'Фильм', year: 2017 },
+            { name: 'Оно 2', type: 'Фильм', year: 2019 }
+        ]
+    },
+    {
+        name: 'Заклятие', icon: '🕯️',
+        films: [
+            { name: 'Заклятие', type: 'Фильм', year: 2013 },
+            { name: 'Заклятие 2', type: 'Фильм', year: 2016 },
+            { name: 'Заклятие 3: По воле дьявола', type: 'Фильм', year: 2021 }
+        ]
+    },
+    {
+        name: 'Люди Икс', icon: '⚡',
+        films: [
+            { name: 'Люди Икс', type: 'Фильм', year: 2000 },
+            { name: 'Люди Икс 2', type: 'Фильм', year: 2003 },
+            { name: 'Люди Икс: Последняя битва', type: 'Фильм', year: 2006 },
+            { name: 'Люди Икс: Первый класс', type: 'Фильм', year: 2011 },
+            { name: 'Люди Икс: Дни минувшего будущего', type: 'Фильм', year: 2014 },
+            { name: 'Люди Икс: Апокалипсис', type: 'Фильм', year: 2016 },
+            { name: 'Логан', type: 'Фильм', year: 2017 }
+        ]
+    },
+    {
+        name: 'Человек-паук (до MCU)', icon: '🕸️',
+        films: [
+            { name: 'Человек-паук', type: 'Фильм', year: 2002 },
+            { name: 'Человек-паук 2', type: 'Фильм', year: 2004 },
+            { name: 'Человек-паук 3: Враг в отражении', type: 'Фильм', year: 2007 },
+            { name: 'Новый Человек-паук', type: 'Фильм', year: 2012 },
+            { name: 'Новый Человек-паук: Высокое напряжение', type: 'Фильм', year: 2014 }
+        ]
+    },
+    {
+        name: 'Расширенная вселенная DC', icon: '🦸',
+        films: [
+            { name: 'Человек из стали', type: 'Фильм', year: 2013 },
+            { name: 'Бэтмен против Супермена: На заре справедливости', type: 'Фильм', year: 2016 },
+            { name: 'Отряд самоубийц', type: 'Фильм', year: 2016 },
+            { name: 'Чудо-женщина', type: 'Фильм', year: 2017 },
+            { name: 'Лига справедливости', type: 'Фильм', year: 2017 },
+            { name: 'Аквамен', type: 'Фильм', year: 2018 },
+            { name: 'Шазам!', type: 'Фильм', year: 2019 },
+            { name: 'Хищные птицы: Потрясающая история Харли Квинн', type: 'Фильм', year: 2020 },
+            { name: 'Чудо-женщина: 1984', type: 'Фильм', year: 2020 },
+            { name: 'Отряд самоубийц: Миссия навылет', type: 'Фильм', year: 2021 },
+            { name: 'Чёрный Адам', type: 'Фильм', year: 2022 },
+            { name: 'Шазам! Ярость богов', type: 'Фильм', year: 2023 },
+            { name: 'Флэш', type: 'Фильм', year: 2023 },
+            { name: 'Аквамен и потерянное царство', type: 'Фильм', year: 2023 },
+            { name: 'Синий жук', type: 'Фильм', year: 2023 }
+        ]
+    },
+    {
+        name: 'Джокер', icon: '🤡',
+        films: [
+            { name: 'Джокер', type: 'Фильм', year: 2019 },
+            { name: 'Джокер: Безумие на двоих', type: 'Фильм', year: 2024 }
+        ]
+    },
+    {
+        name: 'Джеймс Бонд (Крэйг)', icon: '🕴️',
+        films: [
+            { name: 'Казино Рояль', type: 'Фильм', year: 2006 },
+            { name: 'Квант милосердия', type: 'Фильм', year: 2008 },
+            { name: '007: Координаты «Скайфолл»', type: 'Фильм', year: 2012 },
+            { name: '007: Спектр', type: 'Фильм', year: 2015 },
+            { name: 'Не время умирать', type: 'Фильм', year: 2021 }
+        ]
+    },
+    {
+        name: 'Kingsman', icon: '🎩',
+        films: [
+            { name: 'Kingsman: Секретная служба', type: 'Фильм', year: 2014 },
+            { name: 'Kingsman: Золотое кольцо', type: 'Фильм', year: 2017 },
+            { name: 'King\'s Man: Начало', type: 'Фильм', year: 2021 }
+        ]
+    },
+    {
+        name: 'Рокки', icon: '🥊',
+        films: [
+            { name: 'Рокки', type: 'Фильм', year: 1976 },
+            { name: 'Рокки 2', type: 'Фильм', year: 1979 },
+            { name: 'Рокки 3', type: 'Фильм', year: 1982 },
+            { name: 'Рокки 4', type: 'Фильм', year: 1985 },
+            { name: 'Рокки 5', type: 'Фильм', year: 1990 },
+            { name: 'Рокки Бальбоа', type: 'Фильм', year: 2006 }
+        ]
+    },
+    {
+        name: 'Крид', icon: '🥊',
+        films: [
+            { name: 'Крид: Наследие Рокки', type: 'Фильм', year: 2015 },
+            { name: 'Крид 2', type: 'Фильм', year: 2018 },
+            { name: 'Крид 3', type: 'Фильм', year: 2023 }
+        ]
+    },
+    {
+        name: 'Хищник', icon: '👽',
+        films: [
+            { name: 'Хищник', type: 'Фильм', year: 1987 },
+            { name: 'Хищник 2', type: 'Фильм', year: 1990 },
+            { name: 'Хищники', type: 'Фильм', year: 2010 },
+            { name: 'Хищник', type: 'Фильм', year: 2018 },
+            { name: 'Добыча', type: 'Фильм', year: 2022 }
+        ]
+    },
+    {
+        name: 'Чужой', icon: '🛸',
+        films: [
+            { name: 'Чужой', type: 'Фильм', year: 1979 },
+            { name: 'Чужие', type: 'Фильм', year: 1986 },
+            { name: 'Чужой 3', type: 'Фильм', year: 1992 },
+            { name: 'Чужой: Воскрешение', type: 'Фильм', year: 1997 },
+            { name: 'Прометей', type: 'Фильм', year: 2012 },
+            { name: 'Чужой: Завет', type: 'Фильм', year: 2017 }
+        ]
+    },
+    {
+        name: 'Планета обезьян', icon: '🐵',
+        films: [
+            { name: 'Восстание планеты обезьян', type: 'Фильм', year: 2011 },
+            { name: 'Планета обезьян: Революция', type: 'Фильм', year: 2014 },
+            { name: 'Планета обезьян: Война', type: 'Фильм', year: 2017 },
+            { name: 'Планета обезьян: Новое царство', type: 'Фильм', year: 2024 }
+        ]
+    },
+    {
+        name: 'Тихое место', icon: '🔇',
+        films: [
+            { name: 'Тихое место', type: 'Фильм', year: 2018 },
+            { name: 'Тихое место 2', type: 'Фильм', year: 2020 },
+            { name: 'Тихое место: День первый', type: 'Фильм', year: 2024 }
+        ]
+    },
+    {
+        name: 'Обитель зла', icon: '🧟',
+        films: [
+            { name: 'Обитель зла', type: 'Фильм', year: 2002 },
+            { name: 'Обитель зла 2: Апокалипсис', type: 'Фильм', year: 2004 },
+            { name: 'Обитель зла 3', type: 'Фильм', year: 2007 },
+            { name: 'Обитель зла 4: Жизнь после смерти', type: 'Фильм', year: 2010 },
+            { name: 'Обитель зла: Возмездие', type: 'Фильм', year: 2012 },
+            { name: 'Обитель зла: Последняя глава', type: 'Фильм', year: 2016 }
+        ]
+    },
+    {
+        name: 'Мортал Комбат', icon: '🗡️',
+        films: [
+            { name: 'Мортал Комбат', type: 'Фильм', year: 1995 },
+            { name: 'Мортал Комбат 2: Истребление', type: 'Фильм', year: 1997 },
+            { name: 'Мортал Комбат', type: 'Фильм', year: 2021 }
+        ]
+    },
+    {
+        name: 'Сериалы-легенды', icon: '📺',
+        films: [
+            { name: 'Игра престолов', type: 'Сериал', year: 2011 },
+            { name: 'Во все тяжкие', type: 'Сериал', year: 2008 },
+            { name: 'Друзья', type: 'Сериал', year: 1994 },
+            { name: 'Шерлок', type: 'Сериал', year: 2010 },
+            { name: 'Теория большого взрыва', type: 'Сериал', year: 2007 },
+            { name: 'Офис', type: 'Сериал', year: 2005 },
+            { name: 'Сверхъестественное', type: 'Сериал', year: 2005 },
+            { name: 'Ходячие мертвецы', type: 'Сериал', year: 2010 },
+            { name: 'Мир Дикого запада', type: 'Сериал', year: 2016 },
+            { name: 'Секретные материалы', type: 'Сериал', year: 1993 },
+            { name: 'Остаться в живых', type: 'Сериал', year: 2004 },
+            { name: 'Настоящий детектив', type: 'Сериал', year: 2014 }
+        ]
+    },
+    {
+        name: 'Мадагаскар', icon: '🦁',
+        films: [
+            { name: 'Мадагаскар', type: 'Фильм', year: 2005 },
+            { name: 'Мадагаскар 2', type: 'Фильм', year: 2008 },
+            { name: 'Мадагаскар 3', type: 'Фильм', year: 2012 },
+            { name: 'Пингвины Мадагаскара', type: 'Фильм', year: 2014 }
+        ]
+    },
+    {
+        name: 'Головоломка', icon: '🧠',
+        films: [
+            { name: 'Головоломка', type: 'Фильм', year: 2015 },
+            { name: 'Головоломка 2', type: 'Фильм', year: 2024 }
+        ]
+    },
+    {
+        name: 'Суперсемейка', icon: '🦸',
+        films: [
+            { name: 'Суперсемейка', type: 'Фильм', year: 2004 },
+            { name: 'Суперсемейка 2', type: 'Фильм', year: 2018 }
+        ]
+    },
+    {
+        name: 'Тачки', icon: '🏎️',
+        films: [
+            { name: 'Тачки', type: 'Фильм', year: 2006 },
+            { name: 'Тачки 2', type: 'Фильм', year: 2011 },
+            { name: 'Тачки 3', type: 'Фильм', year: 2017 }
+        ]
+    },
+    {
+        name: 'Шерлок Холмс', icon: '🕵️',
+        films: [
+            { name: 'Шерлок Холмс', type: 'Фильм', year: 2009 },
+            { name: 'Шерлок Холмс: Игра теней', type: 'Фильм', year: 2011 }
+        ]
+    },
+    {
+        name: 'Один дома', icon: '🎄',
+        films: [
+            { name: 'Один дома', type: 'Фильм', year: 1990 },
+            { name: 'Один дома 2: Потерянный в Нью-Йорке', type: 'Фильм', year: 1992 },
+            { name: 'Один дома 3', type: 'Фильм', year: 1997 },
+            { name: 'Один дома 4', type: 'Фильм', year: 2002 }
+        ]
+    },
+    {
+        name: 'Астрал', icon: '😱',
+        films: [
+            { name: 'Астрал', type: 'Фильм', year: 2011 },
+            { name: 'Астрал: Глава 2', type: 'Фильм', year: 2013 },
+            { name: 'Астрал: Глава 3', type: 'Фильм', year: 2015 },
+            { name: 'Астрал: Последний ключ', type: 'Фильм', year: 2018 }
+        ]
+    },
+    {
+        name: 'Ральф', icon: '🕹️',
+        films: [
+            { name: 'Ральф', type: 'Фильм', year: 2012 },
+            { name: 'Ральф против интернета', type: 'Фильм', year: 2018 }
+        ]
+    },
+    {
+        name: 'Моана', icon: '🌊',
+        films: [
+            { name: 'Моана', type: 'Фильм', year: 2016 },
+            { name: 'Моана 2', type: 'Фильм', year: 2024 }
+        ]
     }
 ];
 
@@ -2217,25 +2638,46 @@ function closeAnalytics() {
 // ========================
 const LEVELS = [
     [1, 'Новичок'],
+    [2, 'Начинающий'],
     [3, 'Любопытный'],
+    [4, 'Исследователь'],
     [5, 'Зритель'],
+    [7, 'Постоянный зритель'],
+    [8, 'Завсегдатай'],
     [10, 'Киностарт'],
+    [12, 'Кинофан'],
     [15, 'Кинофил'],
+    [18, 'Ценитель кино'],
     [20, 'Киноман'],
+    [25, 'Синемафан'],
     [30, 'Синематографист'],
+    [40, 'Кинокритик'],
     [50, 'Знаток'],
+    [60, 'Архивариус'],
     [75, 'Профи'],
+    [90, 'Мастер коллекций'],
     [100, 'Эксперт'],
+    [120, 'Ветеран кино'],
     [150, 'Мастер'],
+    [180, 'Хранитель плёнок'],
     [200, 'Легенда кино'],
+    [250, 'Кинокомандор'],
     [300, 'Гуру'],
+    [400, 'Кинопионер'],
     [500, 'Икона'],
+    [600, 'Кинопророк'],
     [750, 'Миф'],
+    [900, 'Киноимператор'],
     [1000, 'Живая легенда'],
+    [1200, 'Титан кино'],
     [1500, 'Неутомимый'],
     [2000, 'Коллекционер'],
-    [3000, 'Хранитель архивов'],
-    [5000, 'Бессмертный']
+    [2500, 'Хранитель архивов'],
+    [3000, 'Бог кино'],
+    [4000, 'Легенда вселенной'],
+    [5000, 'Бессмертный'],
+    [7500, 'Кинобожество'],
+    [10000, 'Творец вселенной']
 ];
 
 function getLevel(n) {
@@ -2265,6 +2707,23 @@ function checkAchievements() {
     const tmdbHigh = items.filter(i => i.tmdbRating && i.tmdbRating >= 8.5).length;
     const decades = new Set(items.filter(i => i.year).map(i => Math.floor(i.year / 10) * 10)).size;
     const a = computeAnalytics();
+    const ratedSum = items.reduce((s, i) => s + (i.rating > 0 ? i.rating : 0), 0);
+    const avgRating = ratedCount ? Math.round(ratedSum / ratedCount * 10) / 10 : 0;
+    const longFilms = items.filter(i => i.runtime && i.runtime >= 180).length;
+    const lowTmdb = items.filter(i => i.tmdbRating && i.tmdbRating > 0 && i.tmdbRating < 5.5).length;
+    const watched7d = items.filter(i => i.watchedAt && !isNaN(Date.parse(i.watchedAt)) &&
+        (Date.now() - Date.parse(i.watchedAt)) < 7 * 86400000).length;
+    const isCollDone = name => {
+        const c = COLLECTIONS.find(x => x.name === name);
+        return !!c && c.films.length > 0 && c.films.every(f => {
+            const it = findCollectionItem(f);
+            return it && it.status === 'Просмотрено';
+        });
+    };
+    const collectionsDone = COLLECTIONS.filter(c => c.films.length > 0 && c.films.every(f => {
+        const it = findCollectionItem(f);
+        return it && it.status === 'Просмотрено';
+    })).length;
 
     let night = 0, morning = 0, maxDay = 0;
     const dayCounts = {};
@@ -2316,7 +2775,51 @@ function checkAchievements() {
         { icon: '📅', name: 'Коллекция десятилетий', desc: 'фильмы из 5 десятилетий', cur: Math.min(decades, 5), need: 5, done: decades >= 5 },
         { icon: '🎖️', name: 'Оскароносец', desc: '5 записей с рейтингом TMDB 8.5+', cur: Math.min(tmdbHigh, 5), need: 5, done: tmdbHigh >= 5 },
         { icon: '❤️', name: 'Любимое', desc: '10 важных записей', cur: Math.min(important, 10), need: 10, done: important >= 10 },
-        { icon: '🏆', name: 'Легенда', desc: '100 фильмов в коллекции', cur: Math.min(films, 100), need: 100, done: films >= 100 }
+        { icon: '🏆', name: 'Легенда', desc: '100 фильмов в коллекции', cur: Math.min(films, 100), need: 100, done: films >= 100 },
+        { icon: '🗃️', name: 'Кинобиблиотека', desc: '250 записей в коллекции', cur: Math.min(total, 250), need: 250, done: total >= 250 },
+        { icon: '🏰', name: 'Кинодворец', desc: '500 записей в коллекции', cur: Math.min(total, 500), need: 500, done: total >= 500 },
+        { icon: '🌌', name: 'Киновселенная', desc: '1000 записей в коллекции', cur: Math.min(total, 1000), need: 1000, done: total >= 1000 },
+        { icon: '🎞️', name: 'Фильмофил', desc: '150 фильмов в коллекции', cur: Math.min(films, 150), need: 150, done: films >= 150 },
+        { icon: '📼', name: 'Магнат кино', desc: '300 фильмов в коллекции', cur: Math.min(films, 300), need: 300, done: films >= 300 },
+        { icon: '📺', name: 'Сериалополия', desc: '50 сериалов в коллекции', cur: Math.min(serials, 50), need: 50, done: serials >= 50 },
+        { icon: '🎌', name: 'Отаку', desc: '50 аниме в коллекции', cur: Math.min(anime, 50), need: 50, done: anime >= 50 },
+        { icon: '🍜', name: 'Хранитель аниме', desc: '100 аниме в коллекции', cur: Math.min(anime, 100), need: 100, done: anime >= 100 },
+        { icon: '🎟️', name: 'Абонемент на всё', desc: '25 добавлений за один день', cur: Math.min(maxDay, 25), need: 25, done: maxDay >= 25 },
+        { icon: '🎡', name: 'Рекорд дня', desc: '50 добавлений за один день', cur: Math.min(maxDay, 50), need: 50, done: maxDay >= 50 },
+        { icon: '🔁', name: 'Повторная классика', desc: '25 пересмотров', cur: Math.min(rewatches, 25), need: 25, done: rewatches >= 25 },
+        { icon: '♻️', name: 'Вечный цикл', desc: '100 пересмотров', cur: Math.min(rewatches, 100), need: 100, done: rewatches >= 100 },
+        { icon: '⭐', name: 'Взыскательный', desc: '25 оценок 9–10', cur: Math.min(rated9, 25), need: 25, done: rated9 >= 25 },
+        { icon: '💯', name: 'Перфекционист', desc: '20 оценок 10/10', cur: Math.min(rated10, 20), need: 20, done: rated10 >= 20 },
+        { icon: '✍️', name: 'Главный критик', desc: '100 оценок', cur: Math.min(ratedCount, 100), need: 100, done: ratedCount >= 100 },
+        { icon: '📊', name: 'Дотошный', desc: 'оценка у 95%+ записей', cur: total ? Math.round(ratedCount / total * 100) : 0, need: 95, done: total > 0 && ratedCount / total >= 0.95 },
+        { icon: '🎯', name: 'Эстет', desc: 'средняя оценка 9+', cur: avgRating, need: 9, done: ratedCount >= 10 && avgRating >= 9 },
+        { icon: '🏛️', name: 'Архив эпох', desc: 'фильмы из 8 десятилетий', cur: Math.min(decades, 8), need: 8, done: decades >= 8 },
+        { icon: '📜', name: 'Хранитель веков', desc: 'фильмы из 12 десятилетий', cur: Math.min(decades, 12), need: 12, done: decades >= 12 },
+        { icon: '🎨', name: 'Мастер жанров', desc: '25 разных жанров', cur: Math.min(genres.size, 25), need: 25, done: genres.size >= 25 },
+        { icon: '⏱️', name: 'Кинобесконечность', desc: '1000 часов просмотра', cur: Math.min(a.hours, 1000), need: 1000, done: a.hours >= 1000 },
+        { icon: '⏳', name: 'Властелин времени', desc: '1500 часов просмотра', cur: Math.min(a.hours, 1500), need: 1500, done: a.hours >= 1500 },
+        { icon: '📺', name: 'Серийный гигант', desc: '500 серий/эпизодов просмотрено', cur: Math.min(a.episodes, 500), need: 500, done: a.episodes >= 500 },
+        { icon: '🔢', name: 'Эпизодный рекорд', desc: '1000 серий/эпизодов просмотрено', cur: Math.min(a.episodes, 1000), need: 1000, done: a.episodes >= 1000 },
+        { icon: '🔥', name: 'Железная дисциплина', desc: '60 дней подряд', cur: Math.min(a.streak, 60), need: 60, done: a.streak >= 60 },
+        { icon: '🏆', name: 'Год кино', desc: '365 дней подряд', cur: Math.min(a.streak, 365), need: 365, done: a.streak >= 365 },
+        { icon: '🌙', name: 'Сова-киноман', desc: '50 добавлений после 22:00', cur: Math.min(night, 50), need: 50, done: night >= 50 },
+        { icon: '☀️', name: 'Утренний сеанс', desc: '50 добавлений до 9:00', cur: Math.min(morning, 50), need: 50, done: morning >= 50 },
+        { icon: '🎖️', name: 'Лауреат', desc: '25 записей с рейтингом TMDB 8.5+', cur: Math.min(tmdbHigh, 25), need: 25, done: tmdbHigh >= 25 },
+        { icon: '🏅', name: 'Оскар за всё', desc: '50 записей с рейтингом TMDB 8.5+', cur: Math.min(tmdbHigh, 50), need: 50, done: tmdbHigh >= 50 },
+        { icon: '🎬', name: 'Долгий сеанс', desc: '10 фильмов длиннее 3 часов', cur: Math.min(longFilms, 10), need: 10, done: longFilms >= 10 },
+        { icon: '🤡', name: 'Культовый мусор', desc: '5 записей с рейтингом TMDB ниже 5.5', cur: Math.min(lowTmdb, 5), need: 5, done: lowTmdb >= 5 },
+        { icon: '🍿', name: 'Запойный марафонец', desc: '5 просмотров за последнюю неделю', cur: Math.min(watched7d, 5), need: 5, done: watched7d >= 5 },
+        { icon: '📚', name: 'Собиратель', desc: '1 полностью собранная коллекция', cur: Math.min(collectionsDone, 1), need: 1, done: collectionsDone >= 1 },
+        { icon: '🖼️', name: 'Галерист', desc: '3 полностью собранные коллекции', cur: Math.min(collectionsDone, 3), need: 3, done: collectionsDone >= 3 },
+        { icon: '🏛️', name: 'Куратор', desc: '5 полностью собранных коллекций', cur: Math.min(collectionsDone, 5), need: 5, done: collectionsDone >= 5 },
+        { icon: '🏺', name: 'Директор музея', desc: '8 полностью собранных коллекций', cur: Math.min(collectionsDone, 8), need: 8, done: collectionsDone >= 8 },
+        { icon: '🗿', name: 'Эрмитаж', desc: '12 полностью собранных коллекций', cur: Math.min(collectionsDone, 12), need: 12, done: collectionsDone >= 12 },
+        { icon: '🪄', name: 'Выпускник Хогвартса', desc: 'вся коллекция «Гарри Поттер» просмотрена', cur: isCollDone('Гарри Поттер') ? 1 : 0, need: 1, done: isCollDone('Гарри Поттер') },
+        { icon: '💍', name: 'Хранитель Кольца', desc: 'вся коллекция «Властелин колец» просмотрена', cur: isCollDone('Властелин колец') ? 1 : 0, need: 1, done: isCollDone('Властелин колец') },
+        { icon: '🕷️', name: 'Мститель', desc: 'вся коллекция «Марвел (MCU)» просмотрена', cur: isCollDone('Марвел (MCU)') ? 1 : 0, need: 1, done: isCollDone('Марвел (MCU)') },
+        { icon: '🏎️', name: 'Семья Торрето', desc: 'вся коллекция «Форсаж» просмотрена', cur: isCollDone('Форсаж') ? 1 : 0, need: 1, done: isCollDone('Форсаж') },
+        { icon: '❤️', name: 'Фанатик', desc: '25 важных записей', cur: Math.min(important, 25), need: 25, done: important >= 25 },
+        { icon: '💗', name: 'Кумир', desc: '50 важных записей', cur: Math.min(important, 50), need: 50, done: important >= 50 }
     ];
     return { level: getLevel(total), list };
 }
@@ -2363,9 +2866,13 @@ const COLL_POSTERS_KEY = 'kinoCollectionPosters';
 const collPosterCache = loadJSON(COLL_POSTERS_KEY, {});
 let collPrefetchBusy = false;
 
+function normName(s) {
+    return String(s || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+}
+
 function findCollectionItem(film) {
-    const nm = film.name.trim().toLowerCase();
-    return items.find(i => i.name.trim().toLowerCase() === nm);
+    const nm = normName(film.name);
+    return items.find(i => normName(i.name) === nm);
 }
 
 function collectionsBodyHtml() {
@@ -2480,7 +2987,7 @@ $('#collectionsBody').addEventListener('click', async function(e) {
     if (!chip) return;
     const name = chip.dataset.collName;
     const type = chip.dataset.collType;
-    const existing = items.find(i => i.name.trim().toLowerCase() === name.toLowerCase());
+    const existing = findCollectionItem({ name, type });
     if (existing) {
         openDetail(existing.id);
         return;
