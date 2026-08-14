@@ -218,6 +218,14 @@ const SYNC_URL = '/api/sync';
 let syncMeta = { updatedAt: 0 };
 let syncTimer = null;
 let hadStoredArchive = false;
+let syncAnnounced = false;
+
+function syncToastOnce(message) {
+    if (!syncAnnounced) {
+        syncAnnounced = true;
+        showToast(message);
+    }
+}
 
 function loadSyncMeta() {
     try {
@@ -249,15 +257,21 @@ async function syncPush() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ updatedAt: syncMeta.updatedAt, data: items })
         });
-        if (!resp.ok) return;
+        if (!resp.ok) {
+            console.warn('☁️ sync push failed, status:', resp.status);
+            if (resp.status === 501 || resp.status === 401) syncToastOnce('☁️ Синхронизация не настроена на сервере');
+            return;
+        }
         const j = await resp.json();
         if (j && j.conflict) {
             // сервер новее — подтягиваем его версию
+            console.log('☁️ sync conflict, pulling server version');
             pullSync();
         } else if (j && j.ok) {
             const pushed = syncMeta.updatedAt;
             syncMeta.lastPush = pushed;
             persistSyncMeta();
+            console.log('☁️ sync push ok:', items.length, 'записей, updatedAt', pushed);
         }
     } catch (e) { /* ignore: оффлайн или KV не настроен */ }
 }
@@ -277,7 +291,8 @@ async function pullSync() {
             purgeTrash();
             weeklySummary();
             trackAchievementUnlocks();
-            showToast('☁️ Архив обновлён с сервера');
+            syncToastOnce('☁️ Архив синхронизирован с сервера');
+            console.log('☁️ sync pull ok:', items.length, 'записей');
         }
     } catch (e) { /* ignore */ }
 }
