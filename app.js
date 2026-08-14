@@ -208,6 +208,7 @@ const SIZE_KEY = 'kinoCardSize';
 const WEEK_KEY = 'kinoWeekToast';
 const TRASH_TTL = 30 * 24 * 3600 * 1000;
 const SYNC_KEY = 'kinoSyncMeta';
+const SYNC_BACKUP_KEY = 'kinoSyncBackup';
 const SYNC_URL = '/api/sync';
 
 // ========================
@@ -290,18 +291,69 @@ async function pullSync() {
         const j = await resp.json();
         if (!j || !j.updatedAt) return;
         if (j.updatedAt > syncMeta.updatedAt && Array.isArray(j.data) && j.data.length) {
-            items = j.data.map(normalize);
-            syncMeta.updatedAt = j.updatedAt;
-            persistSyncMeta();
-            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); } catch (e) { /* ignore */ }
+            // бэкап локального списка перед объединением — на случай ошибки
+            try { localStorage.setItem(SYNC_BACKUP_KEY, JSON.stringify(items)); } catch (e) { /* ignore */ }
+            const before = items.length;
+            const merged = mergeSyncLists(items, j.data.map(normalize));
+            const added = merged.length - before;
+            items = merged;
             render();
             purgeTrash();
             weeklySummary();
             trackAchievementUnlocks();
-            syncToastOnce('☁️ Архив синхронизирован с сервера');
-            console.log('☁️ sync pull ok:', items.length, 'записей');
+            touchSyncMeta();
+            saveData(true);
+            syncToastOnce(added > 0 ? `☁️ Архив объединён с сервером (+${added} записей)` : '☁️ Архив объединён с сервером');
+            console.log('☁️ sync merge ok: было', before, 'стало', merged.length, ', добавлено', added);
         }
     } catch (e) { /* ignore */ }
+}
+
+// Объединение списков: ничего не теряем — локальные записи, которых нет
+// на сервере, сохраняются; дубликаты склеиваются, сохраняя оценки, даты
+// просмотра и статусы «На паузе»/«В процессе» с любого из устройств.
+function mergeSyncLists(local, remote) {
+    const seen = new Map();
+    local.forEach(it => seen.set(syncKey(it), it));
+    const out = [];
+    remote.forEach(rit => {
+        const k = syncKey(rit);
+        if (seen.has(k)) {
+            out.push(mergeItems(seen.get(k), rit));
+            seen.delete(k);
+        } else {
+            out.push(rit);
+        }
+    });
+    seen.forEach(it => out.push(it));
+    return out;
+}
+
+function syncKey(it) {
+    return ((it.type || '') + '|' + (it.name || '')).toLowerCase();
+}
+
+function mergeItems(a, b) {
+    const score = it =>
+        (it.tmdbId ? 1 : 0) + (it.poster ? 1 : 0) + (it.rating > 0 ? 1 : 0) +
+        (it.overview ? 1 : 0) + (it.watchedAt ? 1 : 0) + (it.genres && it.genres.length ? 1 : 0);
+    let base = score(a) >= score(b) ? a : b;
+    const other = base === a ? b : a;
+    const merged = Object.assign({}, base);
+    // статус «в процессе работы» не теряем ни с одного устройства
+    if (a.status === 'На паузе' || b.status === 'На паузе') merged.status = 'На паузе';
+    else if (a.status === 'В процессе' && b.status !== 'В процессе') merged.status = 'В процессе';
+    else if (b.status === 'В процессе' && a.status !== 'В процессе') merged.status = 'В процессе';
+    // добираем поля, которых нет в выбранной версии
+    for (const field of ['rating', 'watchedAt', 'year', 'tmdbRating', 'overview', 'runtime', 'poster', 'tmdbId', 'tmdbType', 'genres']) {
+        const v = merged[field];
+        const empty = v === undefined || v === null || v === '' || v === 0 || (Array.isArray(v) && !v.length);
+        if (empty) {
+            const o = other[field];
+            if (o !== undefined && o !== null && o !== '' && o !== 0 && !(Array.isArray(o) && !o.length)) merged[field] = o;
+        }
+    }
+    return merged;
 }
 
 let items = [];
