@@ -21,7 +21,12 @@ async function kvGet() {
     const j = await r.json();
     if (!j || !j.result) return null;
     try {
-        return JSON.parse(j.result);
+        let parsed = JSON.parse(j.result);
+        // «лечим» старые записи с двойным кодированием
+        if (typeof parsed === 'string') {
+            try { parsed = JSON.parse(parsed); } catch (e) { /* ignore */ }
+        }
+        return parsed;
     } catch (e) {
         return null;
     }
@@ -35,7 +40,7 @@ async function kvSet(value) {
             Authorization: 'Bearer ' + process.env.KV_REST_API_TOKEN,
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify(JSON.stringify(value))
+        body: JSON.stringify(value)
     });
     return r.ok;
 }
