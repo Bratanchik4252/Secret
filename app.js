@@ -207,6 +207,80 @@ const FOLDERS_KEY = 'kinoFolders';
 const SIZE_KEY = 'kinoCardSize';
 const WEEK_KEY = 'kinoWeekToast';
 const TRASH_TTL = 30 * 24 * 3600 * 1000;
+const SYNC_KEY = 'kinoSyncMeta';
+const SYNC_URL = '/api/sync';
+
+// ========================
+//  СИНХРОНИЗАЦИЯ (между устройствами через Vercel KV)
+//  last-writer-wins по метке времени; оффлайн безопасно:
+//  при недоступности сервера всё тихо остаётся в localStorage.
+// ========================
+let syncMeta = { updatedAt: 0 };
+let syncTimer = null;
+let hadStoredArchive = false;
+
+function loadSyncMeta() {
+    try {
+        const raw = localStorage.getItem(SYNC_KEY);
+        if (raw) syncMeta = Object.assign({ updatedAt: 0 }, JSON.parse(raw));
+    } catch (e) { /* ignore */ }
+}
+
+function persistSyncMeta() {
+    try { localStorage.setItem(SYNC_KEY, JSON.stringify(syncMeta)); } catch (e) { /* ignore */ }
+}
+
+function touchSyncMeta() {
+    syncMeta.updatedAt = Date.now();
+    persistSyncMeta();
+}
+
+function scheduleSyncPush(delay) {
+    clearTimeout(syncTimer);
+    syncTimer = setTimeout(syncPush, delay || 800);
+}
+
+async function syncPush() {
+    if (!items.length) return;
+    if (!syncMeta.updatedAt) touchSyncMeta();
+    try {
+        const resp = await fetch(SYNC_URL, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ updatedAt: syncMeta.updatedAt, data: items })
+        });
+        if (!resp.ok) return;
+        const j = await resp.json();
+        if (j && j.conflict) {
+            // сервер новее — подтягиваем его версию
+            pullSync();
+        } else if (j && j.ok) {
+            const pushed = syncMeta.updatedAt;
+            syncMeta.lastPush = pushed;
+            persistSyncMeta();
+        }
+    } catch (e) { /* ignore: оффлайн или KV не настроен */ }
+}
+
+async function pullSync() {
+    try {
+        const resp = await fetch(SYNC_URL);
+        if (!resp.ok) return;
+        const j = await resp.json();
+        if (!j || !j.updatedAt) return;
+        if (j.updatedAt > syncMeta.updatedAt && Array.isArray(j.data) && j.data.length) {
+            items = j.data.map(normalize);
+            syncMeta.updatedAt = j.updatedAt;
+            persistSyncMeta();
+            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); } catch (e) { /* ignore */ }
+            render();
+            purgeTrash();
+            weeklySummary();
+            trackAchievementUnlocks();
+            showToast('☁️ Архив обновлён с сервера');
+        }
+    } catch (e) { /* ignore */ }
+}
 
 let items = [];
 let trash = loadJSON(TRASH_KEY, []);
@@ -1207,6 +1281,7 @@ function loadData() {
     try {
         saved = localStorage.getItem(STORAGE_KEY);
     } catch (e) { /* ignore */ }
+    hadStoredArchive = !!saved;
 
     if (saved) {
         try {
@@ -1222,6 +1297,11 @@ function loadData() {
     purgeTrash();
     weeklySummary();
     trackAchievementUnlocks();
+    loadSyncMeta();
+    // локальные данные или уже прошедшую синхронизацию — отправляем,
+    // но если это первичная загрузка сида без синхронизации — только тянем с сервера
+    if (hadStoredArchive || syncMeta.updatedAt) scheduleSyncPush(300);
+    setTimeout(pullSync, 1500);
 }
 
 function saveData(silent) {
@@ -1230,6 +1310,8 @@ function saveData(silent) {
     } catch (e) { /* ignore */ }
     if (silent) renderStats();
     else render();
+    touchSyncMeta();
+    scheduleSyncPush();
 }
 
 // ========================
