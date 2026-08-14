@@ -63,11 +63,16 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'PUT') {
-        let body;
-        try {
-            body = JSON.parse(req.body || '{}');
-        } catch (e) {
-            return res.status(400).json({ error: 'BAD_JSON' });
+        // Vercel уже может распарсить JSON в объект; body может быть строкой,
+        // Buffer'ом или объектом — поддерживаем все варианты
+        let body = req.body;
+        if (Buffer.isBuffer(body)) body = body.toString('utf8');
+        if (typeof body === 'string') {
+            try {
+                body = JSON.parse(body);
+            } catch (e) {
+                return res.status(400).json({ error: 'BAD_JSON' });
+            }
         }
         if (!body || typeof body.updatedAt !== 'number' || !Array.isArray(body.data)) {
             return res.status(400).json({ error: 'BAD_PAYLOAD' });

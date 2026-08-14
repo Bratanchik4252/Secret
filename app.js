@@ -219,6 +219,7 @@ let syncMeta = { updatedAt: 0 };
 let syncTimer = null;
 let hadStoredArchive = false;
 let syncAnnounced = false;
+let syncRetries = 0;
 
 function syncToastOnce(message) {
     if (!syncAnnounced) {
@@ -260,8 +261,14 @@ async function syncPush() {
         if (!resp.ok) {
             console.warn('☁️ sync push failed, status:', resp.status);
             if (resp.status === 501 || resp.status === 401) syncToastOnce('☁️ Синхронизация не настроена на сервере');
+            if (resp.status !== 501 && resp.status !== 401 && syncRetries < 3) {
+                syncRetries++;
+                clearTimeout(syncTimer);
+                syncTimer = setTimeout(syncPush, 5000 * syncRetries);
+            }
             return;
         }
+        syncRetries = 0;
         const j = await resp.json();
         if (j && j.conflict) {
             // сервер новее — подтягиваем его версию
